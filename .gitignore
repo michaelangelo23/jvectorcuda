@@ -1,0 +1,35 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+*.iws
+.vscode/
+
+# Java
+*.class
+*.jar
+*.war
+*.ear
+target/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# JCuda native libraries (downloaded at runtime)
+# lib/ is excluded but libs/ (our local JARs) is tracked
+
+# Working files - kept local during development
+POC_LOG.md
+PROBLEMS.md
+fri_jan_02_2026_unique_project_ideas_for_parallel_processing (1).md
+
+# Compiled CUDA kernels are committed (PTX files in resources)
+# Do NOT ignore: src/main/resources/kernels/*.ptx

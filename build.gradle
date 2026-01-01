@@ -1,0 +1,51 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+}
+
+group = 'com.vindex'
+version = '1.0.0-SNAPSHOT'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // JCuda (GPU backend) - Using local JARs to bypass POM placeholder issues
+    // JARs downloaded from Maven Central and placed in libs/
+    implementation fileTree(dir: 'libs', include: ['jcuda-*.jar', 'jcublas-*.jar', 'jcurand-*.jar'])
+    
+    // JVector (CPU fallback) - TODO: Add correct version after CUDA test works
+    // implementation 'io.github.jbellis:jvector-base:5.0.0'
+    
+    // JavaFX + FXyz3D (visualization) - Disabled for initial testing
+    // implementation 'org.openjfx:javafx-controls:21'
+    // implementation 'org.openjfx:javafx-graphics:21'
+    // implementation 'org.fxyz3d:fxyz3d:0.5.4'
+    
+    // Logging
+    implementation 'org.slf4j:slf4j-api:2.0.9'
+    implementation 'ch.qos.logback:logback-classic:1.4.11'
+    
+    // Testing
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.0'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.10.0'  // Required for Gradle test execution
+    testImplementation 'org.openjdk.jmh:jmh-core:1.37'
+    testAnnotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess:1.37'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+// Ensure resources (PTX files) are included in JAR
+jar {
+    from(sourceSets.main.resources) {
+        include 'kernels/**/*.ptx'
+    }
+}
