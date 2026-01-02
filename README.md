@@ -57,33 +57,81 @@ A Java library for CUDA-accelerated vector similarity search.
 ┌─────────────────────────────────────────────────────────────┐
 │                     Your Application                         │
 └─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    JVectorCUDA API                           │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
-│  │ VectorIndex │  │ SearchResult│  │ VectorIndexFactory  │  │
-│  └─────────────┘  └─────────────┘  └─────────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
-                              │
-              ┌───────────────┼───────────────┐
-              ▼               ▼               ▼
-      ┌───────────┐   ┌───────────┐   ┌───────────────┐
-      │ CPUIndex  │   │ GPUIndex  │   │ HybridIndex   │
-      │ (brute)   │   │ (CUDA)    │   │ (auto-route)  │
-      └───────────┘   └───────────┘   └───────────────┘
-                              │
-                              ▼
-                   ┌─────────────────┐
-                   │  CUDA Kernels   │
-                   │  (PTX files)    │
-                   └─────────────────┘
-                              │
-                              ▼
-                   ┌─────────────────┐
-                   │  NVIDIA GPU     │
-                   └─────────────────┘
+### Architecture Overview
+
+```mermaid
+flowchart TB
+    App["🖥️ Your Application"]
+    
+    subgraph API["JVectorCUDA API"]
+        direction LR
+        VectorIndex["VectorIndex"]
+        SearchResult["SearchResult"]
+        Factory["VectorIndexFactory"]
+    end
+    
+    subgraph Implementations["Index Implementations"]
+        direction LR
+        CPU["CPUIndex<br/>(HNSW)"]
+        GPU["GPUIndex<br/>(CUDA Brute-Force)"]
+        Hybrid["HybridIndex<br/>(Auto-Route)"]
+    end
+    
+    subgraph CUDAStack["CUDA Stack"]
+        direction TB
+        Kernels["📄 CUDA Kernels<br/>(PTX Files)"]
+        NVGPU["🎮 NVIDIA GPU<br/>(Compute 6.1+)"]
+    end
+    
+    App --> API
+    API --> Implementations
+    
+    GPU --> CUDAStack
+    Hybrid -.-> CPU
+    Hybrid -.-> GPU
+    
+    Kernels --> NVGPU
+    
+    style App fill:#e1f5ff
+    style API fill:#fff3cd
+    style Implementations fill:#d4edda
+    style CUDAStack fill:#f8d7da
+    style Hybrid fill:#d1ecf1,stroke:#0c5460,stroke-width:3px
 ```
+
+### Routing Decision Flow
+
+```mermaid
+flowchart LR
+    Start([Query Request])
+    
+    Start --> IndexType{Index Type?}
+    
+    IndexType -->|Hybrid ⭐| Smart{Batch Size?}
+    IndexType -->|Auto| GPUCheck{GPU Available?}
+    IndexType -->|CPU| CPUPath[CPU: HNSW<br/>~89ms/query]
+    IndexType -->|GPU| GPUPath[GPU: CUDA<br/>~5ms/query<br/>+transfer cost]
+    
+    Smart -->|Single| CPUPath
+    Smart -->|≥10 queries| GPUPath
+    
+    GPUCheck -->|Yes| GPUPath
+    GPUCheck -->|No| CPUPath
+    
+    CPUPath --> Result([SearchResult])
+    GPUPath --> Result
+    
+    style Smart fill:#d1ecf1,stroke:#0c5460,stroke-width:2px
+    style CPUPath fill:#d4edda
+    style GPUPath fill:#f8d7da
+    style Result fill:#fff3cd
+```
+
+**Key Points:**
+- **HybridIndex** (recommended) intelligently routes based on workload
+- **CPUIndex** uses HNSW approximation for low-latency single queries
+- **GPUIndex** uses brute-force exact search for high-throughput batches
+- **Auto** selects GPU if available, otherwise falls back to CPU
 
 ---
 
