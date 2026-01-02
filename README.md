@@ -4,6 +4,12 @@
 [![CodeQL](https://github.com/michaelangelo23/jvectorcuda/actions/workflows/codeql.yml/badge.svg)](https://github.com/michaelangelo23/jvectorcuda/actions/workflows/codeql.yml)
 [![License: Apache 2.0](https://img.shields.io/github/license/michaelangelo23/jvectorcuda)](LICENSE)
 
+![Java](https://img.shields.io/badge/Java-17+-ED8B00?style=flat&logo=openjdk&logoColor=white)
+![CUDA](https://img.shields.io/badge/CUDA-11.8+-76B900?style=flat&logo=nvidia&logoColor=white)
+![Gradle](https://img.shields.io/badge/Gradle-8.0+-02303A?style=flat&logo=gradle&logoColor=white)
+![JVector](https://img.shields.io/badge/JVector-3.0.0-blue?style=flat)
+![JCuda](https://img.shields.io/badge/JCuda-12.0.0-76B900?style=flat)
+
 > This library idea was created during the creation of "JavaLlama", a school project for OOP.
 
 GPU-accelerated vector similarity search for Java with automatic CPU fallback.
