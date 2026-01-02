@@ -32,9 +32,7 @@ jobs:
         with:
           languages: java
           queries: security-and-quality
-
-      - name: Build with Gradle
-        run: ./gradlew build -x test
+          build-mode: none
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
