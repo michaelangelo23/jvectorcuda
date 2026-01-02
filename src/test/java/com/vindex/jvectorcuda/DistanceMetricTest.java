@@ -195,6 +195,54 @@ class DistanceMetricTest {
         }
 
         @Test
+        @DisplayName("Cosine: Normalized vs non-normalized vectors")
+        void cosineNormalizedVsNonNormalized() throws Exception {
+            float[] a = {1.0f, 2.0f, 3.0f};
+            float[] b = {2.0f, 4.0f, 6.0f};  // Parallel to a (scaled by 2)
+            
+            float distance = computeGpuDistance(DistanceMetric.COSINE, a, b);
+            
+            // Parallel vectors should have zero cosine distance regardless of magnitude
+            assertEquals(0.0f, distance, EPSILON, "Parallel vectors should have zero cosine distance");
+        }
+
+        @Test
+        @DisplayName("Cosine: Negative values should work correctly")
+        void cosineNegativeValues() throws Exception {
+            float[] a = {-1.0f, -2.0f, -3.0f};
+            float[] b = {1.0f, 2.0f, 3.0f};
+            
+            float distance = computeGpuDistance(DistanceMetric.COSINE, a, b);
+            
+            // Opposite direction vectors: cosine similarity = -1, distance = 2
+            assertEquals(2.0f, distance, EPSILON, "Opposite direction vectors should have cosine distance 2");
+        }
+
+        @Test
+        @DisplayName("Inner Product: Negative values produce positive distance")
+        void innerProductNegativeValues() throws Exception {
+            float[] a = {-1.0f, -2.0f, -3.0f};
+            float[] b = {1.0f, 2.0f, 3.0f};
+            
+            float distance = computeGpuDistance(DistanceMetric.INNER_PRODUCT, a, b);
+            
+            // Dot product = -1-4-9 = -14, negated = 14 (positive distance)
+            assertEquals(14.0f, distance, EPSILON, "Inner product of opposite vectors should be positive distance");
+        }
+
+        @Test
+        @DisplayName("Inner Product: Large magnitude vectors")
+        void innerProductLargeMagnitude() throws Exception {
+            float[] a = {100.0f, 200.0f, 300.0f};
+            float[] b = {1.0f, 1.0f, 1.0f};
+            
+            float distance = computeGpuDistance(DistanceMetric.INNER_PRODUCT, a, b);
+            
+            // Dot product = 100+200+300 = 600, negated = -600
+            assertEquals(-600.0f, distance, EPSILON, "Inner product should handle large magnitudes");
+        }
+
+        @Test
         @DisplayName("Non-multiple-of-blocksize vector count")
         void nonMultipleOfBlocksize() throws Exception {
             // 257 vectors with 256 block size = 2 blocks, 1 thread idle

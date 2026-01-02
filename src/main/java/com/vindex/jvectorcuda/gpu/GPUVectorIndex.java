@@ -98,7 +98,10 @@ public class GPUVectorIndex implements VectorIndex {
     public void add(float[][] vectors) {
         checkNotClosed();
         
-        if (vectors == null || vectors.length == 0) {
+        if (vectors == null) {
+            throw new IllegalArgumentException("Vectors array cannot be null");
+        }
+        if (vectors.length == 0) {
             return;
         }
         

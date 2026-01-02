@@ -121,8 +121,8 @@ public class ThreadSafeVectorIndex implements VectorIndex {
      */
     @Override
     public CompletableFuture<SearchResult> searchAsync(float[] query, int k) {
-        // Acquire read lock before delegating to avoid lock being released
-        // before delegate's async operation completes
+        // Use read lock for searchAsync to allow concurrent read-only GPU/index access,
+        // consistent with the thread-safety guarantees of other search operations.
         return CompletableFuture.supplyAsync(() -> {
             rwLock.readLock().lock();
             try {

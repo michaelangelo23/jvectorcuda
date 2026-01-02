@@ -44,7 +44,10 @@ public class CPUVectorIndex implements VectorIndex {
     public void add(float[][] newVectors) {
         checkNotClosed();
         
-        if (newVectors == null || newVectors.length == 0) {
+        if (newVectors == null) {
+            throw new IllegalArgumentException("Vectors array cannot be null");
+        }
+        if (newVectors.length == 0) {
             return;
         }
         
