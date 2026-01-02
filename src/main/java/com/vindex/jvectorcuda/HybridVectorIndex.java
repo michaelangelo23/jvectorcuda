@@ -90,7 +90,7 @@ public class HybridVectorIndex implements VectorIndex {
     
     // State tracking
     private final AtomicBoolean closed = new AtomicBoolean(false);
-    private int vectorCount = 0;
+    private volatile int vectorCount = 0;  // volatile for visibility across threads
 
     /**
      * Creates a hybrid vector index with default thresholds and Euclidean distance.

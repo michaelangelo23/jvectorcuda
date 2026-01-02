@@ -134,12 +134,7 @@ public class ThreadSafeVectorIndex implements VectorIndex {
     }
     
     /**
-     * Async search using CompletableFuture with read lock.
-     * The search executes on a separate thread from the common ForkJoinPool.
-     * 
-     * @param query vector of shape [dimensions]
-     * @param k number of nearest neighbors to return
-     * @return CompletableFuture that will complete with search results
+     * {@inheritDoc}
      */
     @Override
     public CompletableFuture<SearchResult> searchAsync(float[] query, int k) {

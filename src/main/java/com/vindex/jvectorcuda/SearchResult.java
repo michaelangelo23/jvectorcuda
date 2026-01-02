@@ -50,9 +50,15 @@ public final class SearchResult {
      * @param ids array of indices pointing to the nearest neighbors in the index
      * @param distances array of distances from the query to each neighbor
      * @param searchTimeMs time taken to perform the search in milliseconds
-     * @throws IllegalArgumentException if ids and distances have different lengths
+     * @throws IllegalArgumentException if ids or distances is null, or they have different lengths
      */
     public SearchResult(int[] ids, float[] distances, long searchTimeMs) {
+        if (ids == null) {
+            throw new IllegalArgumentException("IDs array cannot be null");
+        }
+        if (distances == null) {
+            throw new IllegalArgumentException("Distances array cannot be null");
+        }
         if (ids.length != distances.length) {
             throw new IllegalArgumentException("IDs and distances arrays must have same length");
         }

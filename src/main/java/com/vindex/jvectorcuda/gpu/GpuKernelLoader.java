@@ -118,6 +118,30 @@ public class GpuKernelLoader {
         return function;
     }
     
+    /**
+     * Clears all cached modules for a specific context.
+     * Should be called when a CUDA context is being destroyed.
+     *
+     * @param contextHandle the context identifier to clear cache for
+     */
+    public static void clearContextCache(long contextHandle) {
+        ConcurrentHashMap<String, CUmodule> removed = CONTEXT_MODULE_CACHE.remove(contextHandle);
+        if (removed != null) {
+            logger.debug("Cleared {} cached modules for context {}", removed.size(), Long.toHexString(contextHandle));
+        }
+    }
+    
+    /**
+     * Clears all cached modules across all contexts.
+     * Use with caution - only call when shutting down completely.
+     */
+    public static void clearAllCaches() {
+        int contextCount = CONTEXT_MODULE_CACHE.size();
+        CONTEXT_MODULE_CACHE.clear();
+        PTX_CACHE.clear();
+        logger.info("Cleared all kernel caches ({} contexts)", contextCount);
+    }
+    
     public CUmodule getModule() {
         return module;
     }

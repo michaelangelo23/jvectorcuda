@@ -464,6 +464,11 @@ public class GPUVectorIndex implements VectorIndex {
         if (closed.compareAndSet(false, true)) {
             logger.debug("Closing GPUVectorIndex");
             
+            // Clear kernel cache for this context before destroying it
+            if (context != null) {
+                GpuKernelLoader.clearContextCache(System.identityHashCode(context));
+            }
+            
             // Release resources one by one, capturing first exception
             // to ensure all resources are freed even if one fails
             RuntimeException firstException = null;

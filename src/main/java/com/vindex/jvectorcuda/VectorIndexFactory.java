@@ -173,7 +173,7 @@ public final class VectorIndexFactory {
                 logger.info("Auto-selected GPU index ({} dimensions, {}) - 5x speedup expected", 
                     dimensions, metric);
                 return gpuIndex;
-            } catch (Exception e) {
+            } catch (RuntimeException e) {
                 logger.warn("GPU initialization failed, falling back to CPU: {}", e.getMessage());
             }
         } else {

@@ -77,11 +77,11 @@ public final class CudaDetector {
     /** Minimum required CUDA driver minor version. */
     private static final int MIN_DRIVER_MINOR = 8;
 
-    /** Cached result of CUDA availability check. */
-    private static Boolean cudaAvailable = null;
+    /** Cached result of CUDA availability check. Volatile for thread-safe lazy init. */
+    private static volatile Boolean cudaAvailable = null;
 
-    /** Cached driver version string. */
-    private static String driverVersionString = null;
+    /** Cached driver version string. Volatile for thread-safe lazy init. */
+    private static volatile String driverVersionString = null;
 
     private CudaDetector() {
         // Utility class - prevent instantiation
