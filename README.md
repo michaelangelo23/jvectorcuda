@@ -6,7 +6,7 @@
 
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.michaelangelo23/jvectorcuda.svg)](https://central.sonatype.com/artifact/io.github.michaelangelo23/jvectorcuda)
 
-**GPU-accelerated vector similarity search for Java** - Now available on Maven Central! 🎉
+**GPU-accelerated vector similarity search for Java** - Now available on Maven Central!
 
 A Java library for CUDA-accelerated vector similarity search.
 
@@ -388,10 +388,10 @@ cd jvectorcuda
 
 Contributions are welcome! Whether it's:
 
-- 🐛 Reporting bugs
-- 💡 Suggesting features  
-- 📖 Improving documentation
-- 🔧 Submitting pull requests
+- Reporting bugs
+- Suggesting features  
+- Improving documentation
+- Submitting pull requests
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
