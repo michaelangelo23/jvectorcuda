@@ -64,7 +64,7 @@ Download [CUDA Toolkit 11.8](https://developer.nvidia.com/cuda-11-8-0-download-a
 
 ## Installation (Maven/Gradle)
 
-> ⚠️ **Note:** Not yet published to Maven Central. Use local build for now.
+> **Note:** Not yet published to Maven Central. Use local build for now.
 
 ```gradle
 dependencies {
