@@ -22,7 +22,7 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['jcuda-*.jar', 'jcublas-*.jar', 'jcurand-*.jar'])
     
     // JVector (CPU fallback) - Pure Java vector search
-    implementation 'io.github.jbellis:jvector:3.0.0'
+    implementation 'io.github.jbellis:jvector:3.0.6'
     
     // JavaFX + FXyz3D (visualization) - Disabled for initial testing
     // implementation 'org.openjfx:javafx-controls:21'
