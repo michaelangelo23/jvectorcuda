@@ -136,11 +136,11 @@ flowchart LR
 **Color Legend:**
 | Color | Meaning |
 |-------|---------|
-| $\colorbox{#e1f5ff}{\textcolor{black}{\ \ \ }}$ Light Blue | Your application / Entry points |
-| $\colorbox{#fff3cd}{\textcolor{black}{\ \ \ }}$ Yellow | API layer / Decision nodes |
-| $\colorbox{#155724}{\textcolor{white}{\ \ \ }}$ Green | CPU path (JVector HNSW) |
-| $\colorbox{#721c24}{\textcolor{white}{\ \ \ }}$ Red | GPU path (CUDA kernels) |
-| $\colorbox{#d1ecf1}{\textcolor{black}{\ \ \ }}$ Cyan | Hybrid routing (recommended) |
+| ![Light Blue](https://img.shields.io/badge/-%20-e1f5ff) | Your application / Entry points |
+| ![Yellow](https://img.shields.io/badge/-%20-fff3cd) | API layer / Decision nodes |
+| ![Green](https://img.shields.io/badge/-%20-155724) | CPU path (JVector HNSW) |
+| ![Red](https://img.shields.io/badge/-%20-721c24) | GPU path (CUDA kernels) |
+| ![Cyan](https://img.shields.io/badge/-%20-d1ecf1) | Hybrid routing (recommended) |
 
 **Key Points:**
 - **HybridIndex** (recommended) intelligently routes based on workload
