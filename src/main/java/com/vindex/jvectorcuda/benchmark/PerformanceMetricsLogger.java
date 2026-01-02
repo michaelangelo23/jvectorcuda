@@ -215,12 +215,12 @@ public class PerformanceMetricsLogger {
     private void logEntry(MetricEntry entry) {
         switch (logLevel) {
             case TRACE:
-                logger.trace("[{}] {} took {:.3f} ms {}",
-                    entry.timestamp, entry.operation, entry.durationMs,
+                logger.trace("[{}] {} took {} ms {}",
+                    entry.timestamp, entry.operation, String.format("%.3f", entry.durationMs),
                     entry.details != null ? "(" + entry.details + ")" : "");
                 break;
             case DEBUG:
-                logger.debug("{}: {:.3f} ms", entry.operation, entry.durationMs);
+                logger.debug("{}: {} ms", entry.operation, String.format("%.3f", entry.durationMs));
                 break;
             case INFO:
             case NONE:

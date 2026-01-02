@@ -177,9 +177,9 @@ class EuclideanDistanceTest {
         CUdeviceptr d_query = new CUdeviceptr();
         CUdeviceptr d_distances = new CUdeviceptr();
 
-        int dbSize = numVectors * dimensions * Sizeof.FLOAT;
+        long dbSize = (long) numVectors * dimensions * Sizeof.FLOAT;
         int querySize = dimensions * Sizeof.FLOAT;
-        int distSize = numVectors * Sizeof.FLOAT;
+        long distSize = (long) numVectors * Sizeof.FLOAT;
 
         cuMemAlloc(d_database, dbSize);
         cuMemAlloc(d_query, querySize);

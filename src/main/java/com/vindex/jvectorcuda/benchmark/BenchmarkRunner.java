@@ -121,9 +121,9 @@ public class BenchmarkRunner {
         float[][] database = generateRandomVectors(vectorCount, DIMENSIONS);
         float[] query = generateRandomVectors(1, DIMENSIONS)[0];
 
-        double cpuTime = benchmarkCpu(database, query, 1);
+        double cpuTime = benchmarkCpu(database, query);
 
-        double gpuTime = benchmarkGpu(database, query, 1);
+        double gpuTime = benchmarkGpu(database, query);
 
         return new BenchmarkResult(vectorCount, 1, cpuTime, gpuTime);
     }
@@ -138,7 +138,7 @@ public class BenchmarkRunner {
         return new BenchmarkResult(vectorCount, queryCount, cpuTime, gpuTime);
     }
 
-    private double benchmarkCpu(float[][] database, float[] query, int iterations) {
+    private double benchmarkCpu(float[][] database, float[] query) {
         for (int i = 0; i < WARMUP_ITERATIONS; i++) {
             try (VectorIndex index = VectorIndexFactory.cpu(DIMENSIONS)) {
                 index.add(database);
@@ -156,7 +156,7 @@ public class BenchmarkRunner {
         return (System.nanoTime() - start) / 1_000_000.0 / MEASURED_ITERATIONS;
     }
 
-    private double benchmarkGpu(float[][] database, float[] query, int iterations) {
+    private double benchmarkGpu(float[][] database, float[] query) {
         if (!CudaDetector.isAvailable()) return 0;
 
         for (int i = 0; i < WARMUP_ITERATIONS; i++) {

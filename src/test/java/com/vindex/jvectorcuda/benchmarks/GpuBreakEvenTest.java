@@ -168,7 +168,7 @@ public class GpuBreakEvenTest {
         // Upload database once
         CUdeviceptr d_database = uploadToGPU(flattenDatabase(database, numVectors, DIMENSIONS));
         CUdeviceptr d_distances = new CUdeviceptr();
-        cuMemAlloc(d_distances, numVectors * Sizeof.FLOAT);
+        cuMemAlloc(d_distances, (long) numVectors * Sizeof.FLOAT);
         
         // Query many times (only upload query each time)
         for (int i = 0; i < numQueries; i++) {
@@ -299,9 +299,9 @@ public class GpuBreakEvenTest {
         CUdeviceptr d_query = new CUdeviceptr();
         CUdeviceptr d_distances = new CUdeviceptr();
         
-        int dbSize = numVectors * dimensions * Sizeof.FLOAT;
+        long dbSize = (long) numVectors * dimensions * Sizeof.FLOAT;
         int querySize = dimensions * Sizeof.FLOAT;
-        int distSize = numVectors * Sizeof.FLOAT;
+        long distSize = (long) numVectors * Sizeof.FLOAT;
         
         cuMemAlloc(d_database, dbSize);
         cuMemAlloc(d_query, querySize);

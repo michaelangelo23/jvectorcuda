@@ -24,12 +24,47 @@ GPU-accelerated vector similarity search for Java with automatic CPU fallback.
 
 ## Requirements
 
-- Java 21+
+- Java 17+
 - Gradle 8.0+
 - NVIDIA GPU with CUDA Compute 6.1+ (GTX 1060 or newer)
 - CUDA Toolkit 11.8+
 
-## Installation
+## Quick Start
+
+### 1. Clone and Setup JCuda Dependencies
+
+```bash
+git clone https://github.com/michaelangelo23/jvectorcuda.git
+cd jvectorcuda
+```
+
+**Windows (PowerShell):**
+```powershell
+.\scripts\setup-jcuda.ps1
+```
+
+**Linux/macOS:**
+```bash
+chmod +x scripts/setup-jcuda.sh
+./scripts/setup-jcuda.sh
+```
+
+This downloads JCuda 12.0.0 JARs to the `libs/` directory.
+
+### 2. Install CUDA Toolkit
+
+Download [CUDA Toolkit 11.8](https://developer.nvidia.com/cuda-11-8-0-download-archive) (recommended for GTX 10xx/20xx/30xx compatibility).
+
+### 3. Build and Test
+
+```bash
+./gradlew build
+./gradlew test
+```
+
+## Installation (Maven/Gradle)
+
+> ⚠️ **Note:** Not yet published to Maven Central. Use local build for now.
 
 ```gradle
 dependencies {
@@ -61,6 +96,16 @@ try (VectorIndex index = VectorIndexFactory.auto(384, DistanceMetric.COSINE)) {
 ./gradlew build
 ./gradlew test
 ```
+
+## Troubleshooting
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `CUDA_ERROR_NO_DEVICE` | No NVIDIA GPU found | Install NVIDIA drivers, check GPU in Device Manager |
+| `CUDA_ERROR_INVALID_PTX` | CUDA version mismatch | Use CUDA 11.8 (not 12.x or 13.x for older GPUs) |
+| `UnsatisfiedLinkError` | Missing JCuda natives | Run setup script: `.\scripts\setup-jcuda.ps1` |
+| `ClassNotFoundException: jcuda` | JARs not in libs/ | Run setup script or manually download JCuda 12.0.0 |
+| Build fails on GitHub Actions | Expected - JCuda JARs local only | CI uses `continue-on-error`, tests run locally |
 
 ## Benchmarking
 
