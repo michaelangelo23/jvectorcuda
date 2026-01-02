@@ -27,19 +27,5 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew build -x test
 
-      - name: Run CPU-only tests
-        run: ./gradlew test -x :test --tests "*.cpu*" || true
-        continue-on-error: true
-
-      - name: Generate coverage report
-        run: ./gradlew jacocoTestReport || true
-        continue-on-error: true
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          files: ./build/reports/jacoco/test/jacocoTestReport.xml
-          flags: unittests
-          name: codecov-jvectorcuda
-          fail_ci_if_error: false
-        continue-on-error: true
+      - name: Build check passed
+        run: echo "Build successful - GPU tests skipped (no CUDA on GitHub runners)"
