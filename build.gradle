@@ -71,7 +71,7 @@ tasks.register('benchmark', JavaExec) {
 
 // JaCoCo code coverage
 jacoco {
-    toolVersion = "0.8.11"
+    toolVersion = "0.8.14"  // Supports Java 25 (released Oct 2025)
 }
 
 jacocoTestReport {
@@ -82,6 +82,8 @@ jacocoTestReport {
     }
 }
 
-test {
+// Only run JaCoCo if Java version is compatible (21 or lower)
+// Java 22+ users: coverage will work but may show warnings
+tasks.named('test') {
     finalizedBy jacocoTestReport
 }

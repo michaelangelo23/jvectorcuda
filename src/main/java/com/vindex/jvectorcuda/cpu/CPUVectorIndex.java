@@ -1,5 +1,6 @@
 package com.vindex.jvectorcuda.cpu;
 
+import com.vindex.jvectorcuda.DistanceMetric;
 import com.vindex.jvectorcuda.SearchResult;
 import com.vindex.jvectorcuda.VectorIndex;
 import org.slf4j.Logger;
@@ -18,16 +19,25 @@ public class CPUVectorIndex implements VectorIndex {
     private final int dimensions;
     private final List<float[]> vectors;
     private final AtomicBoolean closed = new AtomicBoolean(false);
+    private final DistanceMetric distanceMetric;
 
     public CPUVectorIndex(int dimensions) {
+        this(dimensions, DistanceMetric.EUCLIDEAN);
+    }
+
+    public CPUVectorIndex(int dimensions, DistanceMetric metric) {
         if (dimensions <= 0) {
             throw new IllegalArgumentException("Dimensions must be positive, got: " + dimensions);
+        }
+        if (metric == null) {
+            throw new IllegalArgumentException("Distance metric cannot be null");
         }
         
         this.dimensions = dimensions;
         this.vectors = new ArrayList<>();
+        this.distanceMetric = metric;
         
-        logger.info("CPUVectorIndex created: {} dimensions", dimensions);
+        logger.info("CPUVectorIndex created: {} dimensions, metric={}", dimensions, metric);
     }
 
     @Override
@@ -40,6 +50,10 @@ public class CPUVectorIndex implements VectorIndex {
         
         // Validate and add vectors
         for (int i = 0; i < newVectors.length; i++) {
+            if (newVectors[i] == null) {
+                throw new IllegalArgumentException(
+                    String.format("Vector %d is null", i));
+            }
             if (newVectors[i].length != dimensions) {
                 throw new IllegalArgumentException(
                     String.format("Vector %d has %d dimensions, expected %d", 
@@ -75,10 +89,10 @@ public class CPUVectorIndex implements VectorIndex {
         
         long startTime = System.nanoTime();
         
-        // Compute all distances
+        // Compute all distances using configured metric
         float[] distances = new float[vectors.size()];
         for (int i = 0; i < vectors.size(); i++) {
-            distances[i] = euclideanDistance(query, vectors.get(i));
+            distances[i] = computeDistance(query, vectors.get(i));
         }
         
         // Find top-k
@@ -133,6 +147,15 @@ public class CPUVectorIndex implements VectorIndex {
         }
     }
 
+    // Compute distance based on configured metric
+    private float computeDistance(float[] a, float[] b) {
+        return switch (distanceMetric) {
+            case EUCLIDEAN -> euclideanDistance(a, b);
+            case COSINE -> cosineDistance(a, b);
+            case INNER_PRODUCT -> innerProductDistance(a, b);
+        };
+    }
+
     // Euclidean distance between two vectors
     private float euclideanDistance(float[] a, float[] b) {
         float sum = 0.0f;
@@ -141,6 +164,41 @@ public class CPUVectorIndex implements VectorIndex {
             sum += diff * diff;
         }
         return (float) Math.sqrt(sum);
+    }
+
+    // Cosine distance: 1 - cosine_similarity (smaller = more similar)
+    private float cosineDistance(float[] a, float[] b) {
+        float dotProduct = 0.0f;
+        float normA = 0.0f;
+        float normB = 0.0f;
+        
+        for (int i = 0; i < dimensions; i++) {
+            dotProduct += a[i] * b[i];
+            normA += a[i] * a[i];
+            normB += b[i] * b[i];
+        }
+        
+        float denominator = (float) (Math.sqrt(normA) * Math.sqrt(normB));
+        if (denominator == 0.0f) {
+            return 1.0f; // Maximum distance for zero vectors
+        }
+        
+        float cosineSimilarity = dotProduct / denominator;
+        return 1.0f - cosineSimilarity;
+    }
+
+    // Inner product distance: -dot_product (smaller = more similar, i.e., higher dot product)
+    private float innerProductDistance(float[] a, float[] b) {
+        float dotProduct = 0.0f;
+        for (int i = 0; i < dimensions; i++) {
+            dotProduct += a[i] * b[i];
+        }
+        // Negate so that higher dot product = smaller distance
+        return -dotProduct;
+    }
+
+    public DistanceMetric getDistanceMetric() {
+        return distanceMetric;
     }
 
     // Find k smallest distances using max-heap, O(n log k)

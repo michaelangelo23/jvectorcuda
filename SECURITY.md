@@ -42,7 +42,9 @@ JVectorCUDA uses JCuda which loads native CUDA libraries. This requires:
 ### Memory Safety
 GPU memory operations use native pointers. The library includes:
 - Bounds checking before GPU memory access
-- Proper resource cleanup in `close()` methods
+- Proper resource cleanup in `close()` methods with try-catch for each resource
+- CUDA error checking with descriptive exceptions via `checkCudaResult()`
+- Null validation for vector arrays before processing
 - Input validation for NaN/Infinity values
 
 ## Security Updates

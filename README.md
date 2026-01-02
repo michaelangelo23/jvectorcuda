@@ -4,10 +4,10 @@
 [![CodeQL](https://github.com/michaelangelo23/jvectorcuda/actions/workflows/codeql.yml/badge.svg)](https://github.com/michaelangelo23/jvectorcuda/actions/workflows/codeql.yml)
 [![License: Apache 2.0](https://img.shields.io/github/license/michaelangelo23/jvectorcuda)](LICENSE)
 
-![Java](https://img.shields.io/badge/Java-17+-ED8B00?style=flat&logo=openjdk&logoColor=white)
+![Java](https://img.shields.io/badge/Java-17--25-ED8B00?style=flat&logo=openjdk&logoColor=white)
 ![CUDA](https://img.shields.io/badge/CUDA-11.8+-76B900?style=flat&logo=nvidia&logoColor=white)
-![Gradle](https://img.shields.io/badge/Gradle-8.0+-02303A?style=flat&logo=gradle&logoColor=white)
-![JVector](https://img.shields.io/badge/JVector-3.0.0-blue?style=flat)
+![Gradle](https://img.shields.io/badge/Gradle-9.0+-02303A?style=flat&logo=gradle&logoColor=white)
+![JVector](https://img.shields.io/badge/JVector-3.0.6-blue?style=flat)
 ![JCuda](https://img.shields.io/badge/JCuda-12.0.0-76B900?style=flat)
 
 > This library idea was created during the creation of "JavaLlama", a school project for OOP.
@@ -24,8 +24,8 @@ GPU-accelerated vector similarity search for Java with automatic CPU fallback.
 
 ## Requirements
 
-- Java 17+
-- Gradle 8.0+
+- Java 17-25 (tested with OpenJDK Temurin)
+- Gradle 9.0+
 - NVIDIA GPU with CUDA Compute 6.1+ (GTX 1060 or newer)
 - CUDA Toolkit 11.8+
 
@@ -123,8 +123,8 @@ Tested on GTX 1080 Max-Q (384 dimensions):
 
 | Mode | Dataset | Queries | CPU | GPU | Speedup |
 |------|---------|---------|-----|-----|---------|
-| Single Query | 50K | 1 | 97ms | 186ms | 0.52x |
-| Persistent | 50K | 100 | 2901ms | 1004ms | 2.89x |
+| Single Query | 50K | 1 | 89ms | 175ms | 0.51x |
+| Persistent | 50K | 100 | 2890ms | 523ms | **5.52x** |
 
 GPU wins with persistent memory (upload once, query many).
 

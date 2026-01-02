@@ -8,6 +8,7 @@ import jcuda.Sizeof;
 import jcuda.driver.CUcontext;
 import jcuda.driver.CUdevice;
 import jcuda.driver.CUdeviceptr;
+import jcuda.driver.CUresult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,18 +74,20 @@ public class GPUVectorIndex implements VectorIndex {
         
         // Pre-allocate GPU memory for distances (reused across searches)
         d_distances = new CUdeviceptr();
-        cuMemAlloc(d_distances, (long) capacity * Sizeof.FLOAT);
+        checkCudaResult(
+            cuMemAlloc(d_distances, (long) capacity * Sizeof.FLOAT),
+            "cuMemAlloc for distances");
         
         logger.info("GPUVectorIndex created: {} dimensions, {} capacity, metric={}", 
             dimensions, capacity, metric);
     }
 
     private void initializeCuda() {
-        cuInit(0);
+        checkCudaResult(cuInit(0), "cuInit");
         device = new CUdevice();
-        cuDeviceGet(device, 0);
+        checkCudaResult(cuDeviceGet(device, 0), "cuDeviceGet");
         context = new CUcontext();
-        cuCtxCreate(context, 0, device);
+        checkCudaResult(cuCtxCreate(context, 0, device), "cuCtxCreate");
         logger.debug("CUDA context initialized");
     }
 
@@ -105,6 +108,10 @@ public class GPUVectorIndex implements VectorIndex {
 
     private void validateInputVectors(float[][] vectors) {
         for (int i = 0; i < vectors.length; i++) {
+            if (vectors[i] == null) {
+                throw new IllegalArgumentException(
+                    String.format("Vector %d is null", i));
+            }
             if (vectors[i].length != dimensions) {
                 throw new IllegalArgumentException(
                     String.format("Vector %d has %d dimensions, expected %d", 
@@ -132,8 +139,12 @@ public class GPUVectorIndex implements VectorIndex {
 
     private void allocateAndUploadInitial(float[] flatVectors, int count) {
         d_database = new CUdeviceptr();
-        cuMemAlloc(d_database, (long) capacity * dimensions * Sizeof.FLOAT);
-        cuMemcpyHtoD(d_database, Pointer.to(flatVectors), (long) flatVectors.length * Sizeof.FLOAT);
+        checkCudaResult(
+            cuMemAlloc(d_database, (long) capacity * dimensions * Sizeof.FLOAT),
+            "cuMemAlloc for database");
+        checkCudaResult(
+            cuMemcpyHtoD(d_database, Pointer.to(flatVectors), (long) flatVectors.length * Sizeof.FLOAT),
+            "cuMemcpyHtoD for initial upload");
         databaseOnGpu = true;
         logger.debug("Initial database upload: {} vectors", count);
     }
@@ -141,7 +152,9 @@ public class GPUVectorIndex implements VectorIndex {
     private void appendToExisting(float[] flatVectors, int count) {
         long offset = (long) vectorCount * dimensions * Sizeof.FLOAT;
         CUdeviceptr offsetPtr = d_database.withByteOffset(offset);
-        cuMemcpyHtoD(offsetPtr, Pointer.to(flatVectors), (long) flatVectors.length * Sizeof.FLOAT);
+        checkCudaResult(
+            cuMemcpyHtoD(offsetPtr, Pointer.to(flatVectors), (long) flatVectors.length * Sizeof.FLOAT),
+            "cuMemcpyHtoD for append");
         logger.debug("Appended {} vectors to GPU database", count);
     }
 
@@ -152,20 +165,26 @@ public class GPUVectorIndex implements VectorIndex {
         
         // Allocate new GPU memory
         CUdeviceptr newDatabase = new CUdeviceptr();
-        cuMemAlloc(newDatabase, (long) newCapacity * dimensions * Sizeof.FLOAT);
+        checkCudaResult(
+            cuMemAlloc(newDatabase, (long) newCapacity * dimensions * Sizeof.FLOAT),
+            "cuMemAlloc for expanded database");
         
         // Copy existing data if any
         if (databaseOnGpu && vectorCount > 0) {
-            cuMemcpyDtoD(newDatabase, d_database, (long) vectorCount * dimensions * Sizeof.FLOAT);
-            cuMemFree(d_database);
+            checkCudaResult(
+                cuMemcpyDtoD(newDatabase, d_database, (long) vectorCount * dimensions * Sizeof.FLOAT),
+                "cuMemcpyDtoD during expand");
+            cuMemFree(d_database); // Free old memory (no check needed, best effort)
         }
         
         d_database = newDatabase;
         
         // Reallocate distances buffer
-        cuMemFree(d_distances);
+        cuMemFree(d_distances); // Free old memory (no check needed, best effort)
         d_distances = new CUdeviceptr();
-        cuMemAlloc(d_distances, (long) newCapacity * Sizeof.FLOAT);
+        checkCudaResult(
+            cuMemAlloc(d_distances, (long) newCapacity * Sizeof.FLOAT),
+            "cuMemAlloc for expanded distances");
         
         capacity = newCapacity;
     }
@@ -203,14 +222,18 @@ public class GPUVectorIndex implements VectorIndex {
         CUdeviceptr d_query = uploadQuery(query);
         launchDistanceKernel(d_query);
         float[] distances = downloadDistances();
-        cuMemFree(d_query);
+        cuMemFree(d_query); // Free temporary query memory (best effort)
         return distances;
     }
 
     private CUdeviceptr uploadQuery(float[] query) {
         CUdeviceptr d_query = new CUdeviceptr();
-        cuMemAlloc(d_query, (long) dimensions * Sizeof.FLOAT);
-        cuMemcpyHtoD(d_query, Pointer.to(query), (long) dimensions * Sizeof.FLOAT);
+        checkCudaResult(
+            cuMemAlloc(d_query, (long) dimensions * Sizeof.FLOAT),
+            "cuMemAlloc for query");
+        checkCudaResult(
+            cuMemcpyHtoD(d_query, Pointer.to(query), (long) dimensions * Sizeof.FLOAT),
+            "cuMemcpyHtoD for query");
         return d_query;
     }
 
@@ -228,7 +251,9 @@ public class GPUVectorIndex implements VectorIndex {
 
     private float[] downloadDistances() {
         float[] distances = new float[vectorCount];
-        cuMemcpyDtoH(Pointer.to(distances), d_distances, (long) vectorCount * Sizeof.FLOAT);
+        checkCudaResult(
+            cuMemcpyDtoH(Pointer.to(distances), d_distances, (long) vectorCount * Sizeof.FLOAT),
+            "cuMemcpyDtoH for distances");
         return distances;
     }
 
@@ -274,17 +299,43 @@ public class GPUVectorIndex implements VectorIndex {
         if (closed.compareAndSet(false, true)) {
             logger.debug("Closing GPUVectorIndex");
             
+            // Release resources one by one, capturing first exception
+            // to ensure all resources are freed even if one fails
+            RuntimeException firstException = null;
+            
             if (d_database != null && databaseOnGpu) {
-                cuMemFree(d_database);
+                try {
+                    cuMemFree(d_database);
+                } catch (RuntimeException e) {
+                    logger.error("Failed to free d_database", e);
+                    firstException = e;
+                }
             }
+            
             if (d_distances != null) {
-                cuMemFree(d_distances);
+                try {
+                    cuMemFree(d_distances);
+                } catch (RuntimeException e) {
+                    logger.error("Failed to free d_distances", e);
+                    if (firstException == null) firstException = e;
+                }
             }
+            
             if (context != null) {
-                cuCtxDestroy(context);
+                try {
+                    cuCtxDestroy(context);
+                } catch (RuntimeException e) {
+                    logger.error("Failed to destroy CUDA context", e);
+                    if (firstException == null) firstException = e;
+                }
             }
             
             logger.info("GPUVectorIndex closed, freed GPU memory");
+            
+            // Rethrow first exception after all cleanup attempted
+            if (firstException != null) {
+                throw firstException;
+            }
         }
     }
 
@@ -335,5 +386,16 @@ public class GPUVectorIndex implements VectorIndex {
         }
         
         return result;
+    }
+
+    // Check CUDA result and throw exception on error
+    private static void checkCudaResult(int result, String operation) {
+        if (result != CUresult.CUDA_SUCCESS) {
+            throw new RuntimeException(String.format(
+                "CUDA error in %s: %s (code %d)", 
+                operation, 
+                CUresult.stringFor(result), 
+                result));
+        }
     }
 }

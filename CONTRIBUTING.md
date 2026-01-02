@@ -11,8 +11,8 @@ If you have access to an RTX GPU, running our benchmark suite is the most valuab
 ## Running Benchmarks
 
 **Requirements**
-- JDK 21+ ([Eclipse Temurin](https://adoptium.net/) recommended)
-- Gradle 8.0+ (or use included `./gradlew` wrapper)
+- JDK 17-25 ([Eclipse Temurin](https://adoptium.net/) recommended)
+- Gradle 9.0+ (or use included `./gradlew` wrapper)
 - NVIDIA GPU with CUDA Compute 6.1+ (GTX 1060 or newer)
 - CUDA Toolkit 11.8+ ([download](https://developer.nvidia.com/cuda-toolkit))
 - Updated NVIDIA drivers
@@ -38,7 +38,7 @@ Open a GitHub Issue and paste the contents of `benchmark-report.md`. That's it.
 ## Development Setup
 
 **Requirements**
-- JDK 21+
+- JDK 17-25 (Java 25 fully supported with JaCoCo 0.8.14)
 - CUDA Toolkit 11.8+
 - Visual Studio 2019 Build Tools (Windows)
 

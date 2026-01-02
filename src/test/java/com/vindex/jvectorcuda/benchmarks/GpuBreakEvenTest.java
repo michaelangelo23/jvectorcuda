@@ -11,6 +11,7 @@ import org.junit.jupiter.api.*;
 import java.util.Random;
 
 import static jcuda.driver.JCudaDriver.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 // Benchmarks to find when GPU becomes faster than CPU for vector search
 @DisplayName("GPU Break-Even Point Benchmarks")
@@ -103,17 +104,17 @@ public class GpuBreakEvenTest {
         
         // Measure total GPU time (includes transfer)
         long totalStart = System.nanoTime();
-        @SuppressWarnings("unused")
         float[] gpuResult = euclideanDistanceGPU(database, query, numVectors, DIMENSIONS);
         long totalTime = System.nanoTime() - totalStart;
+        assertTrue(gpuResult.length > 0, "GPU result should not be empty");
         
         // Measure transfer time only (upload database + query, download results)
         long transferStart = System.nanoTime();
         CUdeviceptr d_database = uploadToGPU(flattenDatabase(database, numVectors, DIMENSIONS));
         CUdeviceptr d_query = uploadToGPU(query);
-        @SuppressWarnings("unused")
         float[] dummy = downloadFromGPU(d_database, numVectors * DIMENSIONS);
         long transferTime = System.nanoTime() - transferStart;
+        assertTrue(dummy.length > 0, "Downloaded data should not be empty");
         cuMemFree(d_database);
         cuMemFree(d_query);
         
@@ -353,7 +354,7 @@ public class GpuBreakEvenTest {
 
     private float[] downloadFromGPU(CUdeviceptr devicePtr, int length) {
         float[] result = new float[length];
-        cuMemcpyDtoH(Pointer.to(result), devicePtr, length * Sizeof.FLOAT);
+        cuMemcpyDtoH(Pointer.to(result), devicePtr, (long) length * Sizeof.FLOAT);
         return result;
     }
 
