@@ -24,7 +24,19 @@
 
 **Supported GPUs:** GTX 1060+ / RTX series / Tesla P4+ (Compute Capability 6.1+)
 
-## Quick Start
+## Installation
+
+**Gradle (via JitPack):**
+```gradle
+repositories {
+    maven { url 'https://jitpack.io' }
+}
+dependencies {
+    implementation 'com.github.michaelangelo23:jvectorcuda:v1.0.0'
+}
+```
+
+## Building from Source
 
 ```bash
 git clone https://github.com/michaelangelo23/jvectorcuda.git
