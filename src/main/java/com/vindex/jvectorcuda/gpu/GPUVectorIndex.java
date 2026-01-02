@@ -36,6 +36,10 @@ import static jcuda.driver.JCudaDriver.*;
  *   <li>INNER_PRODUCT - negative dot product</li>
  * </ul>
  * 
+ * <p><b>Thread Safety:</b> This class is NOT thread-safe. CUDA contexts are
+ * inherently single-threaded. External synchronization is required if instances
+ * are shared across threads.
+ * 
  * @author JVectorCUDA (AI-assisted, Human-verified)
  * @since 1.0.0
  */
@@ -412,33 +416,30 @@ public class GPUVectorIndex implements VectorIndex {
     }
 
     /**
-     * Find indices of k smallest distances using partial sort.
+     * Find indices of k smallest distances using a max-heap.
+     * Time complexity: O(n log k) which is optimal for small k.
      */
     private int[] findTopK(float[] distances, int k) {
-        // Create index-distance pairs
         int n = distances.length;
-        int[][] pairs = new int[n][1];
-        float[] dists = new float[n];
+        
+        // Use a max-heap of size k to track smallest distances
+        java.util.PriorityQueue<int[]> maxHeap = new java.util.PriorityQueue<>(
+            k, (a, b) -> Float.compare(distances[b[0]], distances[a[0]])
+        );
+        
         for (int i = 0; i < n; i++) {
-            pairs[i][0] = i;
-            dists[i] = distances[i];
+            if (maxHeap.size() < k) {
+                maxHeap.offer(new int[]{i});
+            } else if (distances[i] < distances[maxHeap.peek()[0]]) {
+                maxHeap.poll();
+                maxHeap.offer(new int[]{i});
+            }
         }
         
-        // Simple selection for small k (optimize later if needed)
+        // Extract indices in order (smallest first)
         int[] result = new int[k];
-        boolean[] used = new boolean[n];
-        
-        for (int i = 0; i < k; i++) {
-            float minDist = Float.MAX_VALUE;
-            int minIdx = -1;
-            for (int j = 0; j < n; j++) {
-                if (!used[j] && dists[j] < minDist) {
-                    minDist = dists[j];
-                    minIdx = j;
-                }
-            }
-            result[i] = minIdx;
-            used[minIdx] = true;
+        for (int i = k - 1; i >= 0; i--) {
+            result[i] = maxHeap.poll()[0];
         }
         
         return result;

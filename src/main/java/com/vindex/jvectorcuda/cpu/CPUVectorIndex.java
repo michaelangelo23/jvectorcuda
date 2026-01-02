@@ -16,6 +16,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * <p>This serves as the fallback when GPU is not available or not beneficial.
  * For small datasets or single queries, CPU is often faster due to no memory transfer overhead.
  * 
+ * <p><b>Thread Safety:</b> This class is NOT thread-safe. External synchronization
+ * is required if instances are shared across threads. For concurrent workloads,
+ * consider creating separate instances per thread or wrapping with synchronized access.
+ * 
  * <p>Future optimization: Integrate JVector's HNSW for approximate nearest neighbor search
  * on larger datasets where O(n) brute-force becomes too slow.
  * 
@@ -169,24 +173,31 @@ public class CPUVectorIndex implements VectorIndex {
     }
 
     /**
-     * Find indices of k smallest distances using partial selection.
+     * Find indices of k smallest distances using a max-heap.
+     * Time complexity: O(n log k) which is optimal for small k.
      */
     private int[] findTopK(float[] distances, int k) {
         int n = distances.length;
-        int[] result = new int[k];
-        boolean[] used = new boolean[n];
         
-        for (int i = 0; i < k; i++) {
-            float minDist = Float.MAX_VALUE;
-            int minIdx = -1;
-            for (int j = 0; j < n; j++) {
-                if (!used[j] && distances[j] < minDist) {
-                    minDist = distances[j];
-                    minIdx = j;
-                }
+        // Use a max-heap of size k to track smallest distances
+        // Each entry is [index, distance] - we use distance for comparison
+        java.util.PriorityQueue<int[]> maxHeap = new java.util.PriorityQueue<>(
+            k, (a, b) -> Float.compare(distances[b[0]], distances[a[0]])
+        );
+        
+        for (int i = 0; i < n; i++) {
+            if (maxHeap.size() < k) {
+                maxHeap.offer(new int[]{i});
+            } else if (distances[i] < distances[maxHeap.peek()[0]]) {
+                maxHeap.poll();
+                maxHeap.offer(new int[]{i});
             }
-            result[i] = minIdx;
-            used[minIdx] = true;
+        }
+        
+        // Extract indices in order (smallest first)
+        int[] result = new int[k];
+        for (int i = k - 1; i >= 0; i--) {
+            result[i] = maxHeap.poll()[0];
         }
         
         return result;

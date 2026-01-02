@@ -1,171 +1,103 @@
 # JVectorCUDA
-A Java library for GPU-accelerated vector similarity search with automatic CPU fallback.
 
-```
-This library idea was created during the creation of "JavaLlama", a school project for OOP.
-```
+> This library idea was created during the creation of "JavaLlama", a school project for OOP.
 
-## Overview
-JVectorCUDA provides CUDA-accelerated vector search for Java applications. When a GPU is unavailable, it automatically falls back to CPU-based search using JVector.
+GPU-accelerated vector similarity search for Java with automatic CPU fallback.
 
 ## Features
-- GPU acceleration using JCUDA
-- Automatic CPU fallback
-- Single JAR deployment
-- JavaFX 3D visualization
-- Multiple distance metrics (Euclidean, Cosine, Inner Product)
 
-## Quick Start
+- CUDA-accelerated brute-force vector search
+- Automatic CPU fallback when GPU unavailable
+- Multiple distance metrics: Euclidean, Cosine Similarity, Inner Product
+- Persistent memory mode for batch queries (5x+ GPU speedup)
+- Portable benchmarking tool for hardware validation
 
-### Installation
-**Gradle:**
+## Requirements
+
+- Java 21+
+- Gradle 8.0+
+- NVIDIA GPU with CUDA Compute 6.1+ (GTX 1060 or newer)
+- CUDA Toolkit 11.8+
+
+## Installation
+
 ```gradle
 dependencies {
     implementation 'com.vindex:jvectorcuda:1.0.0'
 }
 ```
 
-**Maven:**
-```xml
-<dependency>
-    <groupId>com.vindex</groupId>
-    <artifactId>jvectorcuda</artifactId>
-    <version>1.0.0</version>
-</dependency>
-```
+## Usage
 
-### Basic Usage
 ```java
-import com.vindex.jvectorcuda.VectorIndexFactory;
-import com.vindex.jvectorcuda.VectorIndex;
-import com.vindex.jvectorcuda.SearchResult;
-import com.vindex.jvectorcuda.DistanceMetric;
+import com.vindex.jvectorcuda.*;
 
-// Create index (auto-detects GPU)
+// Auto-detect GPU, fallback to CPU
 try (VectorIndex index = VectorIndexFactory.auto(384)) {
-    // Add vectors (uploads to GPU once)
-    float[][] vectors = ...;
     index.add(vectors);
-
-    // Search (runs on GPU, 5x faster than CPU)
-    float[] query = ...;
     SearchResult result = index.search(query, 10);
 }
 
-// With distance metric
+// With specific distance metric
 try (VectorIndex index = VectorIndexFactory.auto(384, DistanceMetric.COSINE)) {
-    // Cosine similarity for text embeddings
+    index.add(vectors);
+    SearchResult result = index.search(query, 10);
 }
 ```
 
-### Visualization
-```java
-import com.vindex.jvectorcuda.visualization.Visualizer;
-Visualizer.show3D(index, result);
+## Build
+
+```bash
+./gradlew build
+./gradlew test
 ```
 
-## Requirements
-- Java 21+ (tested on Java 25)
-- For GPU: NVIDIA GPU with CUDA Compute 6.1+ (GTX 1060 or newer)
-- CUDA Toolkit 11.8+ (for GPU support)
-- For CPU fallback: Any x64 processor
+## Benchmarking
 
-## Current Status
+Run portable GPU benchmark:
 
-**Phase:** Phase 5 Complete - Developer Tools
+```bash
+./gradlew benchmark
+```
 
-**Completed Phases:**
-- Phase 1: Foundation & Setup ✅
-- Phase 2: Proof of Concept (CUDA kernels) ✅
-- Phase 3: Core Vector Search (GPU/CPU implementations) ✅
-- Phase 4: Distance Metrics (Euclidean, Cosine, Inner Product) ✅
-- Phase 5: Developer Tools (Benchmarking Framework) ✅
+Generates `benchmark-report.md` with system info and performance results.
 
-**Test Suite:** 110 tests passing
+## Performance
 
-**Current Focus:**
-- Phase 6: JavaFX 3D Visualization
-- Gathering GPU performance data from RTX GPUs
+Tested on GTX 1080 Max-Q (384 dimensions):
 
-### Performance Benchmarks (GTX 1080 Max-Q)
+| Mode | Dataset | Queries | CPU | GPU | Speedup |
+|------|---------|---------|-----|-----|---------|
+| Single Query | 50K | 1 | 97ms | 186ms | 0.52x |
+| Persistent | 50K | 100 | 2901ms | 1004ms | 2.89x |
 
-**Single Query (fresh upload each time):**
-| Dataset | CPU | GPU | Speedup | Winner |
-|---------|-----|-----|---------|--------|
-| 50K vectors × 384D | 28ms | 61ms | 0.46x | CPU |
+GPU wins with persistent memory (upload once, query many).
 
-**Persistent Memory (upload once, query many):**
-| Dataset | Queries | CPU | GPU | Speedup | Winner |
-|---------|---------|-----|-----|---------|--------|
-| 50K vectors × 384D | 100 | 2857ms | 525ms | **5.44x** | GPU |
+## Project Structure
 
-**Key Finding:** GPU wins with **persistent memory architecture**:
-- Upload database to GPU once
-- Run many queries without re-uploading
-- Achieves 5x+ speedup over CPU
+```
+src/main/java/com/vindex/jvectorcuda/
+├── VectorIndex.java          # Core interface
+├── VectorIndexFactory.java   # Auto GPU/CPU selection
+├── DistanceMetric.java       # Euclidean, Cosine, Inner Product
+├── cpu/CPUVectorIndex.java   # CPU implementation
+├── gpu/GPUVectorIndex.java   # CUDA implementation
+└── benchmark/                # Benchmarking framework
 
-**Benchmarking Framework:** Use `BenchmarkFramework` to measure your own hardware.
+src/main/resources/kernels/
+├── euclidean_distance.cu/.ptx
+├── cosine_similarity.cu/.ptx
+└── inner_product.cu/.ptx
+```
 
-### Strategic Direction: Hybrid Architecture
+## Status
 
-Based on POC results and market research:
-
-**Goal:** Build first Java library with **intelligent CPU/GPU routing**
-- Automatically uses GPU when beneficial
-- Falls back to CPU when faster
-- Learns optimal routing from workload patterns
-
-**Why Hybrid:**
-- Works on ALL hardware (not just datacenter GPUs)
-- Graceful degradation (always functional)
-- Unique market position (no competitors do this)
-- Future-proof (better GPUs = automatic benefit)
+In development.
 
 ## Contributing
 
-We need help validating GPU performance on modern hardware!
-
-If you have an RTX 2000/3000/4000 series GPU, please:
-1. Run our portable benchmark: `./gradlew benchmark`
-2. Copy the generated `benchmark-report.md` and share via GitHub Issues
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed instructions.
-
-**Why Your Help Matters:**
-- Determines adaptive routing thresholds
-- Validates GPU acceleration viability
-- Guides performance optimization priorities
-
-## Documentation
-
-- [CONTRIBUTING.md](CONTRIBUTING.md) - How to contribute and run benchmarks
+See [CONTRIBUTING.md](CONTRIBUTING.md) for benchmark submission guidelines.
 
 ## License
 
-Apache 2.0 - See [LICENSE](LICENSE) for details.
-
-## Transparency
-
-This project uses AI assistance for development with full transparency:
-- Performance benchmarks published (even when GPU loses)
-- Strategic pivots based on real data, not assumptions
-
-**Current assessment:** GPU acceleration **validated** with persistent memory architecture achieving 5x+ speedup.
-
-## Benchmarking Your Hardware
-
-```java
-import com.vindex.jvectorcuda.benchmark.*;
-
-// Quick benchmark
-BenchmarkFramework framework = new BenchmarkFramework();
-BenchmarkResult result = framework.run(BenchmarkConfig.DEFAULT);
-System.out.println(result.toSummaryString());
-
-// Run full suite
-List<BenchmarkResult> results = framework.runSuite(
-    List.of(10_000, 50_000, 100_000),
-    List.of(128, 384, 768)
-);
-framework.printComparisonTable(results);
-```
+Apache 2.0 - See [LICENSE](LICENSE)
