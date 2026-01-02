@@ -30,7 +30,7 @@ dependencies {
     // implementation 'org.fxyz3d:fxyz3d:0.5.4'
     
     // Logging
-    implementation 'org.slf4j:slf4j-api:2.0.9'
+    implementation 'org.slf4j:slf4j-api:2.0.17'
     implementation 'ch.qos.logback:logback-classic:1.5.23'
     
     // Testing
