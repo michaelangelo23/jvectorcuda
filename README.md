@@ -9,7 +9,7 @@
 ![Gradle](https://img.shields.io/badge/Gradle-9.0+-02303A?style=flat&logo=gradle&logoColor=white)
 ![JCuda](https://img.shields.io/badge/JCuda-12.0.0-76B900?style=flat)
 
-**CUDA-accelerated vector similarity search for Java.** 5x+ speedup for batch queries on NVIDIA GPUs, with automatic CPU fallback.
+**CUDA-accelerated vector similarity search for Java.** Uses GPU for batch queries, CPU for single queries, with automatic fallback.
 
 - GPU-accelerated nearest neighbor search using CUDA
 - Intelligent routing: single queries → CPU, batch queries → GPU
@@ -62,7 +62,7 @@ try (VectorIndex index = VectorIndexFactory.hybrid(384)) {
     // Single query → CPU (low latency)
     SearchResult result = index.search(query, 10);
     
-    // Batch queries → GPU (5x+ speedup)
+    // Batch queries → GPU
     List<SearchResult> results = index.searchBatch(queries, 10);
 }
 ```
@@ -74,16 +74,15 @@ VectorIndexFactory.cpu(384);    // Force CPU
 VectorIndexFactory.gpu(384);    // Force GPU
 ```
 
-## Performance
+## Benchmarks
 
-Tested on GTX 1080 Max-Q (384 dimensions, 50K vectors):
+**GTX 1080 Max-Q** (384 dimensions, 50K vectors):
 
-| Mode | GPU vs CPU |
-|------|------------|
-| Single query | 0.5x (CPU wins) |
-| Batch 100 queries | **5.5x speedup** |
-
-GPU wins when you batch queries or keep data in GPU memory.
+| Mode | CPU | GPU |
+|------|-----|-----|
+| Single query | 89 ms | 175 ms |
+| 10 queries | 890 ms | 200 ms |
+| 100 queries | 2890 ms | 523 ms |
 
 ## Thread Safety
 
