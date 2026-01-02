@@ -43,8 +43,10 @@ public class BenchmarkFramework {
     }
 
     // Runs a single benchmark with given config
+    // NOTE: This runs in COLD-START mode (creates/destroys index per iteration)
+    // For realistic performance, use runPersistentMemoryBenchmark() instead
     public BenchmarkResult run(BenchmarkConfig config) {
-        logger.info("Starting benchmark: {}", config);
+        logger.info("Starting benchmark (cold-start mode): {}", config);
         
         // Generate test data
         float[][] database = generateRandomVectors(
@@ -116,8 +118,10 @@ public class BenchmarkFramework {
     }
 
     // Upload once, query many times benchmark (demonstrates 5x+ speedup)
+    // This is the REALISTIC benchmark mode - measures persistent memory performance
+    // Use this to demonstrate actual production use cases
     public BenchmarkResult runPersistentMemoryBenchmark(BenchmarkConfig config) {
-        logger.info("Starting persistent memory benchmark: {}", config);
+        logger.info("Starting persistent memory benchmark (realistic mode): {}", config);
         
         float[][] database = generateRandomVectors(
             config.getVectorCount(),
@@ -209,7 +213,8 @@ public class BenchmarkFramework {
         double totalTimeMs = 0;
         double transferTimeMs = 0;
         
-        // For non-persistent benchmark, create fresh index each iteration
+        // COLD-START MODE: Create fresh index each iteration (worst case)
+        // This measures setup + upload + query cost on every iteration
         for (int iter = 0; iter < config.getWarmupIterations() + config.getMeasuredIterations(); iter++) {
             boolean isMeasured = iter >= config.getWarmupIterations();
             
@@ -271,7 +276,7 @@ public class BenchmarkFramework {
         }
         
         try (GPUVectorIndex index = new GPUVectorIndex(config.getDimensions(), config.getDistanceMetric())) {
-            // Upload once
+            // PERSISTENT MODE: Upload once, query many times (realistic production scenario)
             long uploadStart = System.nanoTime();
             index.add(database);
             long uploadEnd = System.nanoTime();

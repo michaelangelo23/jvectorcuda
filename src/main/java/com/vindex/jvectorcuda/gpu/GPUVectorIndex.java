@@ -69,6 +69,9 @@ public class GPUVectorIndex implements VectorIndex {
         // Initialize CUDA
         initializeCuda();
         
+        // Validate GPU memory availability before allocation
+        validateGpuMemory(initialCapacity, dimensions);
+        
         // Load kernel for specified metric
         this.kernelLoader = new GpuKernelLoader(metric.getPtxFile(), metric.getKernelName());
         
@@ -272,6 +275,23 @@ public class GPUVectorIndex implements VectorIndex {
         return CompletableFuture.supplyAsync(() -> search(query, k));
     }
 
+    // Batch search - amortizes kernel launch overhead for multiple queries
+    public java.util.List<SearchResult> searchBatch(float[][] queries, int k) {
+        checkNotClosed();
+        
+        if (queries == null || queries.length == 0) {
+            return java.util.Collections.emptyList();
+        }
+        
+        java.util.List<SearchResult> results = new java.util.ArrayList<>(queries.length);
+        
+        for (float[] query : queries) {
+            results.add(search(query, k));
+        }
+        
+        return results;
+    }
+
     @Override
     public int getDimensions() {
         return dimensions;
@@ -386,6 +406,48 @@ public class GPUVectorIndex implements VectorIndex {
         }
         
         return result;
+    }
+
+    // Validate GPU has sufficient memory before allocation
+    private void validateGpuMemory(int capacity, int dimensions) {
+        long[] free = new long[1];
+        long[] total = new long[1];
+        
+        int result = cuMemGetInfo(free, total);
+        if (result != CUresult.CUDA_SUCCESS) {
+            logger.warn("Failed to query GPU memory, proceeding with allocation");
+            return; // Non-fatal, attempt allocation anyway
+        }
+        
+        // Calculate required memory (database + distances buffer + 10% overhead)
+        long databaseBytes = (long) capacity * dimensions * Sizeof.FLOAT;
+        long distancesBytes = (long) capacity * Sizeof.FLOAT;
+        long requiredBytes = (long) ((databaseBytes + distancesBytes) * 1.1); // 10% overhead
+        
+        long availableBytes = free[0];
+        long totalBytes = total[0];
+        
+        if (requiredBytes > availableBytes) {
+            throw new IllegalArgumentException(String.format(
+                "Insufficient GPU memory: need %d MB, available %d MB (%.1f%% of %d MB total)%n" +
+                "Suggestions:%n" +
+                "  - Reduce capacity (current: %,d vectors)%n" +
+                "  - Reduce dimensions (current: %d)%n" +
+                "  - Close other GPU applications%n" +
+                "  - Use CPU implementation instead",
+                requiredBytes / 1_048_576,
+                availableBytes / 1_048_576,
+                (availableBytes * 100.0) / totalBytes,
+                totalBytes / 1_048_576,
+                capacity,
+                dimensions
+            ));
+        }
+        
+        logger.info("GPU memory check passed: need {} MB, available {} MB ({}% of total)",
+            requiredBytes / 1_048_576,
+            availableBytes / 1_048_576,
+            (availableBytes * 100) / totalBytes);
     }
 
     // Check CUDA result and throw exception on error

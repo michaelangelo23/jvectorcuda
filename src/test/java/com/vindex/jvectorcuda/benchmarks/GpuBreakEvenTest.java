@@ -28,6 +28,9 @@ public class GpuBreakEvenTest {
 
     @BeforeAll
     static void setupCuda() {
+        // Print system specs at the start of benchmark tests
+        com.vindex.jvectorcuda.benchmark.BenchmarkRunner.printSystemSpecs();
+        
         cuInit(0);
         device = new CUdevice();
         cuDeviceGet(device, 0);

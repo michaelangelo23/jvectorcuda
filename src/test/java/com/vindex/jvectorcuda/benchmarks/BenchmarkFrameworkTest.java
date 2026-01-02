@@ -6,6 +6,7 @@ import com.vindex.jvectorcuda.benchmark.BenchmarkConfig;
 import com.vindex.jvectorcuda.benchmark.BenchmarkFramework;
 import com.vindex.jvectorcuda.benchmark.BenchmarkResult;
 import com.vindex.jvectorcuda.benchmark.PerformanceMetricsLogger;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -27,6 +28,12 @@ class BenchmarkFrameworkTest {
 
     private BenchmarkFramework framework;
     private boolean gpuAvailable;
+
+    @BeforeAll
+    static void printSpecs() {
+        // Print system specs at the start
+        com.vindex.jvectorcuda.benchmark.BenchmarkRunner.printSystemSpecs();
+    }
 
     @BeforeEach
     void setUp() {

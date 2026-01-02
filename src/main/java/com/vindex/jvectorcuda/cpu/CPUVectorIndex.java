@@ -112,6 +112,23 @@ public class CPUVectorIndex implements VectorIndex {
         return CompletableFuture.supplyAsync(() -> search(query, k));
     }
 
+    // Batch search - processes multiple queries sequentially
+    public List<SearchResult> searchBatch(float[][] queries, int k) {
+        checkNotClosed();
+        
+        if (queries == null || queries.length == 0) {
+            return java.util.Collections.emptyList();
+        }
+        
+        List<SearchResult> results = new ArrayList<>(queries.length);
+        
+        for (float[] query : queries) {
+            results.add(search(query, k));
+        }
+        
+        return results;
+    }
+
     @Override
     public int getDimensions() {
         return dimensions;

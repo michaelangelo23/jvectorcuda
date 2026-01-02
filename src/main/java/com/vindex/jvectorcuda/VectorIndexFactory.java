@@ -62,11 +62,6 @@ public final class VectorIndexFactory {
         return new GPUVectorIndex(dimensions, metric);
     }
 
-    public static VectorIndex hybrid(int dimensions) {
-        validateDimensions(dimensions);
-        throw new UnsupportedOperationException("Hybrid index not yet implemented - use auto() instead");
-    }
-
     private static void validateDimensions(int dimensions) {
         if (dimensions <= 0) {
             throw new IllegalArgumentException("Dimensions must be positive, got: " + dimensions);

@@ -108,9 +108,8 @@ class VectorAdditionTest {
         System.out.printf("CPU: %.2f ms, GPU: %.2f ms, Speedup: %.2fx%n",
                 cpuTime / 1e6, gpuTime / 1e6, speedup);
 
-        // Note: For smaller datasets (<5M), CPU may be faster due to JNI/transfer
-        // overhead
-        // This is expected and documented in STRATEGIC_INSIGHTS.md
+        // Note: For smaller datasets (<5M), CPU may be faster due to JNI/transfer overhead.
+        // See PERFORMANCE.md for detailed analysis of GPU vs CPU trade-offs.
         System.out.printf("GPU is %s for this dataset size (%,d elements)%n",
                 speedup > 1.0f ? "FASTER" : "slower (JNI overhead)", n);
     }

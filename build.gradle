@@ -55,6 +55,7 @@ test {
 
 // Ensure resources (PTX files) are included in JAR
 jar {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     from(sourceSets.main.resources) {
         include 'kernels/**/*.ptx'
     }

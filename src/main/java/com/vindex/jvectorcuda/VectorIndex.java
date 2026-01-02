@@ -1,5 +1,6 @@
 package com.vindex.jvectorcuda;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 // Interface for GPU/CPU-accelerated vector similarity search.
@@ -10,6 +11,9 @@ public interface VectorIndex extends AutoCloseable {
 
     // Searches for k nearest neighbors
     SearchResult search(float[] query, int k);
+
+    // Batch search for multiple queries (amortizes kernel launch overhead)
+    List<SearchResult> searchBatch(float[][] queries, int k);
 
     // Async search
     CompletableFuture<SearchResult> searchAsync(float[] query, int k);

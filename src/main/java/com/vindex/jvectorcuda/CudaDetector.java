@@ -66,11 +66,37 @@ public final class CudaDetector {
             cudaDeviceProp prop = new cudaDeviceProp();
             JCuda.cudaGetDeviceProperties(prop, 0);
 
-            return String.format("GPU: %s, Compute: %d.%d, Memory: %d MB",
+            return String.format("%s (Compute %d.%d, %d MB VRAM, %d MHz)",
                     prop.getName(),
                     prop.major,
                     prop.minor,
-                    prop.totalGlobalMem / (1024 * 1024));
+                    prop.totalGlobalMem / (1024 * 1024),
+                    prop.clockRate / 1000);
+        } catch (Exception e) {
+            return "Error getting GPU info: " + e.getMessage();
+        }
+    }
+
+    // Returns detailed GPU specs for benchmarking
+    public static String getDetailedGpuInfo() {
+        if (!isAvailable()) {
+            return "CUDA not available";
+        }
+
+        try {
+            cudaDeviceProp prop = new cudaDeviceProp();
+            JCuda.cudaGetDeviceProperties(prop, 0);
+
+            StringBuilder info = new StringBuilder();
+            info.append(String.format("%s\n", prop.getName()));
+            info.append(String.format("  - Compute Capability: %d.%d\n", prop.major, prop.minor));
+            info.append(String.format("  - Total VRAM: %d MB\n", prop.totalGlobalMem / (1024 * 1024)));
+            info.append(String.format("  - Clock Rate: %d MHz\n", prop.clockRate / 1000));
+            info.append(String.format("  - Multiprocessors: %d\n", prop.multiProcessorCount));
+            info.append(String.format("  - Warp Size: %d\n", prop.warpSize));
+            info.append(String.format("  - Max Threads per Block: %d\n", prop.maxThreadsPerBlock));
+            
+            return info.toString();
         } catch (Exception e) {
             return "Error getting GPU info: " + e.getMessage();
         }

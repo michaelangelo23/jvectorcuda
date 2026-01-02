@@ -8,40 +8,65 @@ import org.slf4j.LoggerFactory;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static jcuda.driver.JCudaDriver.*;
 
-// Loads and executes CUDA kernels from PTX files.
+// Loads and executes CUDA kernels from PTX files with per-context caching.
 public class GpuKernelLoader {
     
     private static final Logger logger = LoggerFactory.getLogger(GpuKernelLoader.class);
+    
+    // Static cache for loaded PTX bytes (key: ptxFileName)
+    // PTX files are context-independent and safe to cache statically
+    private static final ConcurrentHashMap<String, byte[]> PTX_CACHE = new ConcurrentHashMap<>();
+    
+    // Per-context cache for loaded modules (key: context handle -> ptxFileName -> module)
+    // Modules are context-dependent and must be cached per-context to avoid INVALID_HANDLE errors
+    private static final ConcurrentHashMap<Long, ConcurrentHashMap<String, CUmodule>> CONTEXT_MODULE_CACHE = new ConcurrentHashMap<>();
     
     private CUmodule module;
     private CUfunction function;
     
     public GpuKernelLoader(String ptxFileName, String kernelName) {
-        // Initialize CUDA driver
+        // Initialize CUDA driver (safe to call multiple times)
         cuInit(0);
         
-        // Load PTX file from resources
-        byte[] ptxBytes = loadPTXFromResources(ptxFileName);
+        // Get current context - use hashCode as identifier since getNativePointer() is protected
+        CUcontext context = new CUcontext();
+        cuCtxGetCurrent(context);
+        long contextHandle = System.identityHashCode(context);
         
-        // Create module from PTX
-        module = new CUmodule();
-        int result = cuModuleLoadData(module, ptxBytes);
-        if (result != CUresult.CUDA_SUCCESS) {
-            throw new RuntimeException("Failed to load CUDA module: " + CUresult.stringFor(result));
-        }
+        // Load or retrieve cached PTX bytes
+        byte[] ptxBytes = PTX_CACHE.computeIfAbsent(ptxFileName, this::loadPTXFromResources);
+        
+        // Get or create per-context module cache
+        ConcurrentHashMap<String, CUmodule> moduleCache = CONTEXT_MODULE_CACHE.computeIfAbsent(
+            contextHandle, 
+            k -> new ConcurrentHashMap<>()
+        );
+        
+        // Load or retrieve cached module for this context
+        module = moduleCache.computeIfAbsent(ptxFileName, key -> {
+            CUmodule newModule = new CUmodule();
+            int result = cuModuleLoadData(newModule, ptxBytes);
+            if (result != CUresult.CUDA_SUCCESS) {
+                throw new RuntimeException("Failed to load CUDA module: " + CUresult.stringFor(result));
+            }
+            logger.info("Loaded and cached CUDA module from {} for context {}", ptxFileName, Long.toHexString(contextHandle));
+            return newModule;
+        });
         
         // Get function reference
         function = new CUfunction();
-        result = cuModuleGetFunction(function, module, kernelName);
+        int result = cuModuleGetFunction(function, module, kernelName);
         if (result != CUresult.CUDA_SUCCESS) {
             throw new RuntimeException("Failed to get kernel function '" + kernelName + "': " 
                 + CUresult.stringFor(result));
         }
         
-        logger.info("Successfully loaded kernel '{}' from {}", kernelName, ptxFileName);
+        logger.debug("Retrieved kernel '{}' from cached module {} (context: {})", 
+            kernelName, ptxFileName, Long.toHexString(contextHandle));
     }
     
     private byte[] loadPTXFromResources(String fileName) {

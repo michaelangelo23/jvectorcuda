@@ -22,9 +22,24 @@ public class BenchmarkRunner {
     private static final int[] VECTOR_COUNTS = {1_000, 10_000, 50_000};
     private static final int[] QUERY_COUNTS = {1, 10, 100};
 
+    /**
+     * Print system specs to console. Useful for test setup.
+     */
+    public static void printSystemSpecs() {
+        BenchmarkRunner runner = new BenchmarkRunner();
+        System.out.println("\n" + "=".repeat(70));
+        System.out.println("SYSTEM SPECIFICATIONS");
+        System.out.println("=".repeat(70));
+        System.out.println(runner.getSystemInfo());
+        System.out.println("=".repeat(70) + "\n");
+    }
+
     public static void main(String[] args) {
         System.out.println("JVectorCUDA Benchmark Runner");
         System.out.println("============================\n");
+
+        // Print system specs first
+        printSystemSpecs();
 
         BenchmarkRunner runner = new BenchmarkRunner();
         String report = runner.runFullBenchmark();
@@ -93,28 +108,90 @@ public class BenchmarkRunner {
         return report.toString();
     }
 
-    private String getSystemInfo() {
+    public String getSystemInfo() {
         StringBuilder info = new StringBuilder();
 
+        // GPU Information
         if (CudaDetector.isAvailable()) {
             info.append("- **GPU:** ").append(CudaDetector.getGpuInfo()).append("\n");
         } else {
             info.append("- **GPU:** Not detected\n");
         }
 
+        // CPU Information (attempt to get actual model)
+        String cpuModel = getCpuModel();
         OperatingSystemMXBean os = ManagementFactory.getOperatingSystemMXBean();
-        info.append("- **CPU:** ").append(System.getProperty("os.arch"))
-            .append(" (").append(os.getAvailableProcessors()).append(" cores)\n");
+        int processors = os.getAvailableProcessors();
+        info.append("- **CPU:** ").append(cpuModel)
+            .append(" (").append(processors).append(" threads)\n");
 
+        // Memory Information
         long maxMemory = Runtime.getRuntime().maxMemory() / (1024 * 1024);
-        info.append("- **JVM Memory:** ").append(maxMemory).append(" MB\n");
+        long totalMemory = Runtime.getRuntime().totalMemory() / (1024 * 1024);
+        info.append("- **JVM Memory:** ").append(maxMemory).append(" MB max, ")
+            .append(totalMemory).append(" MB allocated\n");
 
+        // OS Information
         info.append("- **OS:** ").append(System.getProperty("os.name"))
-            .append(" ").append(System.getProperty("os.version")).append("\n");
+            .append(" ").append(System.getProperty("os.version"))
+            .append(" (").append(System.getProperty("os.arch")).append(")\n");
 
-        info.append("- **Java:** ").append(System.getProperty("java.version")).append("\n");
+        // Java Information
+        info.append("- **Java:** ").append(System.getProperty("java.version"))
+            .append(" (").append(System.getProperty("java.vm.name")).append(")\n");
 
         return info.toString();
+    }
+
+    private String getCpuModel() {
+        try {
+            String os = System.getProperty("os.name").toLowerCase();
+            
+            if (os.contains("win")) {
+                // Windows: Query WMI for CPU name
+                Process process = Runtime.getRuntime().exec(
+                    "wmic cpu get name");
+                try (java.io.BufferedReader reader = new java.io.BufferedReader(
+                        new java.io.InputStreamReader(process.getInputStream()))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        line = line.trim();
+                        if (!line.isEmpty() && !line.equals("Name")) {
+                            return line;
+                        }
+                    }
+                }
+            } else if (os.contains("linux")) {
+                // Linux: Read from /proc/cpuinfo
+                Process process = Runtime.getRuntime().exec(
+                    "cat /proc/cpuinfo");
+                try (java.io.BufferedReader reader = new java.io.BufferedReader(
+                        new java.io.InputStreamReader(process.getInputStream()))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        if (line.startsWith("model name")) {
+                            return line.split(":")[1].trim();
+                        }
+                    }
+                }
+            } else if (os.contains("mac")) {
+                // macOS: Use sysctl
+                Process process = Runtime.getRuntime().exec(
+                    "sysctl -n machdep.cpu.brand_string");
+                try (java.io.BufferedReader reader = new java.io.BufferedReader(
+                        new java.io.InputStreamReader(process.getInputStream()))) {
+                    String line = reader.readLine();
+                    if (line != null) {
+                        return line.trim();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // Fallback silently
+        }
+        
+        // Fallback to architecture if detection fails
+        return System.getProperty("os.arch") + " CPU";
     }
 
     private BenchmarkResult runSingleQueryBenchmark(int vectorCount) {
