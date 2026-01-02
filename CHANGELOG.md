@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **HybridVectorIndex** - Intelligent CPU/GPU routing for optimal performance
+  - Automatically routes single queries to CPU (lowest latency)
+  - Automatically routes batch queries (10+) to GPU (5x+ speedup)
+  - Configurable thresholds via Builder pattern
+  - `getRoutingReport()` for debugging routing decisions
+- `VectorIndexFactory.hybrid()` and `hybridThreadSafe()` factory methods
+- `VectorIndex.hybrid()` static convenience method
+- Comprehensive `HybridVectorIndexTest` with 27 test cases
 - `ThreadSafeVectorIndex` wrapper class with ReadWriteLock for concurrent access
 - Factory methods: `autoThreadSafe()`, `cpuThreadSafe()`, `gpuThreadSafe()` in VectorIndexFactory
 - Comprehensive integration test suite (`IntegrationTest.java`) with 21 test cases
@@ -16,31 +24,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Stress tests (rapid open/close cycles, concurrent searches, memory stress)
 - Error handling tests (invalid input, null checks, operations after close)
 - Distance metric edge cases in `DistanceMetricTest` (cosine negative values, inner product large magnitudes)
-- Thread-safe usage examples in README with ExecutorService patterns
 - GPU memory validation in `GPUVectorIndex` constructor to prevent out-of-memory crashes
 - `searchBatch()` method in both GPU and CPU implementations for multiple queries
 - Per-context kernel caching in `GpuKernelLoader` to avoid reloading PTX on every index creation
 - Comprehensive `PERFORMANCE.md` with benchmark results and usage guidance
-- Thread safety warnings in README
-- Algorithm differences documentation (CPU uses HNSW, GPU uses brute-force)
-- "When to Use JVectorCUDA" section in README
-- Prominent CUDA requirement notice in README
 - `CHANGELOG.md` for version tracking
 - **Comprehensive Javadoc documentation** for all public APIs
 - Javadoc configuration in Gradle with `javadoc`, `javadocJar`, and `sourcesJar` tasks
 - `indices()` and `distances()` alias methods in `SearchResult` for cleaner API
 - **CUDA driver version validation** - checks for minimum 11.8 at runtime
 - `CudaDetector.getDriverVersion()` - returns current CUDA driver version
-- `CudaDetector.getMinDriverVersion()` - returns minimum required version (11.8)
-- `CudaDetector.getMinComputeCapability()` - returns minimum compute capability (6.1)
 - `CudaDetector.getCompatibilityReport()` - comprehensive compatibility diagnostics
-- GPU compatibility matrix in README (Pascal through Ada Lovelace)
-- PTX forward-compatibility documentation (11.8 PTX works on 12.x+ drivers)
-- Clarified CUDA Driver vs Toolkit requirements in README
 
 ### Changed
+- README simplified to essential information only
 - `add(null)` now throws `IllegalArgumentException` instead of silently returning (breaking change)
-- README updated with thread-safe wrapper documentation and usage examples
 - Repository description now clearly states NVIDIA GPU requirement
 - README messaging focuses on realistic use cases (batch queries)
 - Removed emojis from documentation for professional tone
@@ -59,7 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Test failures from static module caching across CUDA contexts (changed to per-context caching)
 
 ### Removed
-- `hybrid()` factory method from `VectorIndexFactory` (was throwing UnsupportedOperationException)
+- `hybrid()` factory method stub from `VectorIndexFactory` (was throwing UnsupportedOperationException) - now fully implemented
 - Unused kernel files: `vector_add.cu`, `vector_add.ptx` (never integrated into library)
 - Orphaned test file: `VectorAdditionTest.java` (tested non-existent functionality)
 

@@ -175,6 +175,27 @@ public interface VectorIndex extends AutoCloseable {
     }
 
     /**
+     * Creates a hybrid index with intelligent CPU/GPU routing.
+     *
+     * <p><b>This is the recommended default for most applications.</b> The hybrid index
+     * automatically routes queries to the optimal backend:
+     * <ul>
+     *   <li>Single queries → CPU (lowest latency)</li>
+     *   <li>Batch queries (10+) → GPU (5x+ speedup)</li>
+     *   <li>Large datasets (50K+) → GPU (persistent memory)</li>
+     * </ul>
+     *
+     * @param dimensions the dimensionality of vectors to be indexed
+     * @return a new HybridVectorIndex instance
+     * @throws IllegalArgumentException if dimensions &le; 0
+     * @see VectorIndexFactory#hybrid(int)
+     * @see HybridVectorIndex
+     */
+    static VectorIndex hybrid(int dimensions) {
+        return VectorIndexFactory.hybrid(dimensions);
+    }
+
+    /**
      * Creates a CPU-only index using JVector's HNSW algorithm.
      *
      * <p>Use this when GPU is not needed or for workloads where approximate

@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
  *
  * <p>This factory provides multiple strategies for creating vector indices:
  * <ul>
+ *   <li><b>Hybrid (Recommended):</b> Intelligent routing between GPU and CPU based on workload</li>
  *   <li><b>Auto:</b> Automatically selects GPU if CUDA is available, falls back to CPU</li>
  *   <li><b>CPU:</b> Explicitly creates a CPU-based index using JVector HNSW</li>
  *   <li><b>GPU:</b> Explicitly creates a GPU-based index using CUDA</li>
@@ -18,7 +19,10 @@ import org.slf4j.LoggerFactory;
  *
  * <h2>Basic Usage</h2>
  * <pre>{@code
- * // Auto-detect best available backend
+ * // Recommended: Hybrid index with intelligent routing
+ * VectorIndex index = VectorIndexFactory.hybrid(384);
+ *
+ * // Auto-detect best available backend (GPU preferred)
  * VectorIndex index = VectorIndexFactory.auto(384);
  *
  * // Force CPU (HNSW approximate search)
@@ -60,6 +64,78 @@ public final class VectorIndexFactory {
     private VectorIndexFactory() {
         // Utility class - prevent instantiation
     }
+
+    // ===========================================
+    // Hybrid Index (Recommended)
+    // ===========================================
+
+    /**
+     * Creates a hybrid index with intelligent CPU/GPU routing using Euclidean distance.
+     *
+     * <p><b>This is the recommended default for most applications.</b> The hybrid index
+     * automatically routes queries to the optimal backend based on workload characteristics:
+     * <ul>
+     *   <li>Single queries → CPU (lowest latency)</li>
+     *   <li>Batch queries (10+) → GPU (5x+ speedup)</li>
+     *   <li>Large datasets (50K+) with persistent GPU memory → GPU</li>
+     * </ul>
+     *
+     * @param dimensions the dimensionality of vectors to be indexed
+     * @return a new HybridVectorIndex instance
+     * @throws IllegalArgumentException if dimensions &le; 0
+     * @see HybridVectorIndex
+     */
+    public static VectorIndex hybrid(int dimensions) {
+        return hybrid(dimensions, DistanceMetric.EUCLIDEAN);
+    }
+
+    /**
+     * Creates a hybrid index with intelligent CPU/GPU routing using the specified metric.
+     *
+     * @param dimensions the dimensionality of vectors to be indexed
+     * @param metric the distance metric to use for similarity calculations
+     * @return a new HybridVectorIndex instance
+     * @throws IllegalArgumentException if dimensions &le; 0 or metric is null
+     * @see HybridVectorIndex
+     */
+    public static VectorIndex hybrid(int dimensions, DistanceMetric metric) {
+        validateDimensions(dimensions);
+        validateMetric(metric);
+        logger.info("Creating hybrid index: {} dimensions, {} (intelligent routing)", dimensions, metric);
+        return new HybridVectorIndex(dimensions, metric);
+    }
+
+    /**
+     * Creates a thread-safe hybrid index with intelligent CPU/GPU routing.
+     *
+     * <p>Combines the benefits of hybrid routing with thread-safe concurrent access.
+     *
+     * @param dimensions the dimensionality of vectors to be indexed
+     * @return a thread-safe HybridVectorIndex instance
+     * @throws IllegalArgumentException if dimensions &le; 0
+     * @see HybridVectorIndex
+     * @see ThreadSafeVectorIndex
+     */
+    public static VectorIndex hybridThreadSafe(int dimensions) {
+        return hybridThreadSafe(dimensions, DistanceMetric.EUCLIDEAN);
+    }
+
+    /**
+     * Creates a thread-safe hybrid index with intelligent CPU/GPU routing.
+     *
+     * @param dimensions the dimensionality of vectors to be indexed
+     * @param metric the distance metric to use
+     * @return a thread-safe HybridVectorIndex instance
+     * @throws IllegalArgumentException if dimensions &le; 0 or metric is null
+     */
+    public static VectorIndex hybridThreadSafe(int dimensions, DistanceMetric metric) {
+        VectorIndex baseIndex = hybrid(dimensions, metric);
+        return new ThreadSafeVectorIndex(baseIndex);
+    }
+
+    // ===========================================
+    // Auto Detection (GPU preferred)
+    // ===========================================
 
     /**
      * Creates an index with automatic GPU/CPU detection using Euclidean distance.
