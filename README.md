@@ -53,10 +53,6 @@ A Java library for CUDA-accelerated vector similarity search.
 
 ## How Does It Work?
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     Your Application                         │
-└─────────────────────────────────────────────────────────────┘
 ### Architecture Overview
 
 ```mermaid
