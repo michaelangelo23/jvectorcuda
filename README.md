@@ -136,11 +136,11 @@ flowchart LR
 **Color Legend:**
 | Color | Meaning |
 |-------|---------|
-| 🔵 Blue | Your application / Entry points |
-| 🟡 Yellow | API layer / Decision nodes |
-| 🟢 Green | CPU path (JVector HNSW) |
-| 🔴 Red | GPU path (CUDA kernels) |
-| 🔷 Cyan | Hybrid routing (recommended) |
+| ![#e1f5ff](https://via.placeholder.com/15/e1f5ff/e1f5ff.png) Light Blue | Your application / Entry points |
+| ![#fff3cd](https://via.placeholder.com/15/fff3cd/fff3cd.png) Yellow | API layer / Decision nodes |
+| ![#155724](https://via.placeholder.com/15/155724/155724.png) Green | CPU path (JVector HNSW) |
+| ![#721c24](https://via.placeholder.com/15/721c24/721c24.png) Red | GPU path (CUDA kernels) |
+| ![#d1ecf1](https://via.placeholder.com/15/d1ecf1/d1ecf1.png) Cyan | Hybrid routing (recommended) |
 
 **Key Points:**
 - **HybridIndex** (recommended) intelligently routes based on workload
