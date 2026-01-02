@@ -1,6 +1,7 @@
 plugins {
     id 'java-library'
     id 'maven-publish'
+    id 'jacoco'
 }
 
 group = 'com.vindex'
@@ -66,4 +67,21 @@ tasks.register('benchmark', JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'com.vindex.jvectorcuda.benchmark.BenchmarkRunner'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+// JaCoCo code coverage
+jacoco {
+    toolVersion = "0.8.11"
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+test {
+    finalizedBy jacocoTestReport
 }

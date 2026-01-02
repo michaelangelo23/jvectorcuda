@@ -1,5 +1,9 @@
 # JVectorCUDA
 
+[![CI Build](https://github.com/michaelangelo23/jvectorcuda/actions/workflows/ci.yml/badge.svg)](https://github.com/michaelangelo23/jvectorcuda/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/michaelangelo23/jvectorcuda/actions/workflows/codeql.yml/badge.svg)](https://github.com/michaelangelo23/jvectorcuda/actions/workflows/codeql.yml)
+[![License: Apache 2.0](https://img.shields.io/github/license/michaelangelo23/jvectorcuda)](LICENSE)
+
 > This library idea was created during the creation of "JavaLlama", a school project for OOP.
 
 GPU-accelerated vector similarity search for Java with automatic CPU fallback.
