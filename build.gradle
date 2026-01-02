@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'com.vindex'
-version = '1.0.0-SNAPSHOT'
+version = '1.0.0'
 
 java {
     sourceCompatibility = JavaVersion.VERSION_17
@@ -23,11 +23,6 @@ dependencies {
     
     // JVector (CPU fallback) - Pure Java vector search
     implementation 'io.github.jbellis:jvector:3.0.6'
-    
-    // JavaFX + FXyz3D (visualization) - Disabled for initial testing
-    // implementation 'org.openjfx:javafx-controls:21'
-    // implementation 'org.openjfx:javafx-graphics:21'
-    // implementation 'org.fxyz3d:fxyz3d:0.5.4'
     
     // Logging
     implementation 'org.slf4j:slf4j-api:2.0.17'

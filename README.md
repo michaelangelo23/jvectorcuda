@@ -133,6 +133,15 @@ flowchart LR
     style Result fill:#fff3cd,color:#000
 ```
 
+**Color Legend:**
+| Color | Meaning |
+|-------|---------|
+| 🔵 Blue | Your application / Entry points |
+| 🟡 Yellow | API layer / Decision nodes |
+| 🟢 Green | CPU path (JVector HNSW) |
+| 🔴 Red | GPU path (CUDA kernels) |
+| 🔷 Cyan | Hybrid routing (recommended) |
+
 **Key Points:**
 - **HybridIndex** (recommended) intelligently routes based on workload
 - **CPUIndex** uses HNSW approximation for low-latency single queries
@@ -353,20 +362,6 @@ Contributions are welcome! Whether it's:
 - 🔧 Submitting pull requests
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
----
-
-## Roadmap
-
-Future features planned for upcoming releases:
-
-- [ ] **Metrics API** - Runtime monitoring (query latency, throughput, GPU memory)
-- [ ] **Prometheus/Grafana integration** - Export metrics for observability dashboards
-- [ ] **cuVS integration** - NVIDIA's optimized vector search for 10x+ speedups
-- [ ] **Persistence** - Save/load indexes to disk
-- [ ] **Filtering** - Metadata-based vector filtering
-
-Have a feature request? [Open an issue](https://github.com/michaelangelo23/jvectorcuda/issues/new)!
 
 ---
 
