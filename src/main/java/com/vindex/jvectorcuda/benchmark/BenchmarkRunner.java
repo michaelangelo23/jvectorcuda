@@ -149,8 +149,9 @@ public class BenchmarkRunner {
             
             if (os.contains("win")) {
                 // Windows: Query WMI for CPU name
+                String wmicPath = System.getenv("SystemRoot") + "\\System32\\wbem\\wmic.exe";
                 Process process = Runtime.getRuntime().exec(
-                    "wmic cpu get name");
+                    new String[]{wmicPath, "cpu", "get", "name"});
                 try (java.io.BufferedReader reader = new java.io.BufferedReader(
                         new java.io.InputStreamReader(process.getInputStream()))) {
                     String line;
@@ -164,7 +165,7 @@ public class BenchmarkRunner {
             } else if (os.contains("linux")) {
                 // Linux: Read from /proc/cpuinfo
                 Process process = Runtime.getRuntime().exec(
-                    "cat /proc/cpuinfo");
+                    new String[]{"/bin/cat", "/proc/cpuinfo"});
                 try (java.io.BufferedReader reader = new java.io.BufferedReader(
                         new java.io.InputStreamReader(process.getInputStream()))) {
                     String line;
@@ -177,7 +178,7 @@ public class BenchmarkRunner {
             } else if (os.contains("mac")) {
                 // macOS: Use sysctl
                 Process process = Runtime.getRuntime().exec(
-                    "sysctl -n machdep.cpu.brand_string");
+                    new String[]{"/usr/sbin/sysctl", "-n", "machdep.cpu.brand_string"});
                 try (java.io.BufferedReader reader = new java.io.BufferedReader(
                         new java.io.InputStreamReader(process.getInputStream()))) {
                     String line = reader.readLine();

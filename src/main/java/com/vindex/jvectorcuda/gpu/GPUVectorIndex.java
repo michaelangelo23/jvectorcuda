@@ -276,6 +276,7 @@ public class GPUVectorIndex implements VectorIndex {
     }
 
     // Batch search - amortizes kernel launch overhead for multiple queries
+    @Override
     public java.util.List<SearchResult> searchBatch(float[][] queries, int k) {
         checkNotClosed();
         

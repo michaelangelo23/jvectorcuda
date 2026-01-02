@@ -299,8 +299,20 @@ class BenchmarkFrameworkTest {
             
             // CSV format: timestamp,gpu_name,vector_count,dimensions,query_count,k,metric,cpu_ms,gpu_ms,...
             // Numeric values (cpuTimeMs=parts[7], gpuTimeMs=parts[8]) should be parseable
-            assertDoesNotThrow(() -> Double.parseDouble(parts[7].trim())); // cpuTimeMs
-            assertDoesNotThrow(() -> Double.parseDouble(parts[8].trim())); // gpuTimeMs
+            assertDoesNotThrow(() -> {
+                try {
+                    Double.parseDouble(parts[7].trim()); // cpuTimeMs
+                } catch (NumberFormatException e) {
+                    throw new AssertionError("Invalid CPU time format: " + parts[7], e);
+                }
+            });
+            assertDoesNotThrow(() -> {
+                try {
+                    Double.parseDouble(parts[8].trim()); // gpuTimeMs
+                } catch (NumberFormatException e) {
+                    throw new AssertionError("Invalid GPU time format: " + parts[8], e);
+                }
+            });
         }
 
         @Test

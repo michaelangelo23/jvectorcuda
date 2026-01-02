@@ -113,6 +113,7 @@ public class CPUVectorIndex implements VectorIndex {
     }
 
     // Batch search - processes multiple queries sequentially
+    @Override
     public List<SearchResult> searchBatch(float[][] queries, int k) {
         checkNotClosed();
         

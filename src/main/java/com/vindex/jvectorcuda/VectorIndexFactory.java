@@ -68,6 +68,64 @@ public final class VectorIndexFactory {
         }
     }
 
+    /**
+     * Creates a thread-safe wrapper around an auto-detected index.
+     * Uses ReadWriteLock for concurrent read access and exclusive write access.
+     * 
+     * @param dimensions vector dimensionality
+     * @return thread-safe VectorIndex instance
+     */
+    public static VectorIndex autoThreadSafe(int dimensions) {
+        return autoThreadSafe(dimensions, DistanceMetric.EUCLIDEAN);
+    }
+
+    /**
+     * Creates a thread-safe wrapper around an auto-detected index with custom metric.
+     * 
+     * @param dimensions vector dimensionality
+     * @param metric distance metric to use
+     * @return thread-safe VectorIndex instance
+     */
+    public static VectorIndex autoThreadSafe(int dimensions, DistanceMetric metric) {
+        VectorIndex baseIndex = auto(dimensions, metric);
+        return new ThreadSafeVectorIndex(baseIndex);
+    }
+
+    /**
+     * Creates a thread-safe wrapper around a CPU index.
+     * 
+     * @param dimensions vector dimensionality
+     * @return thread-safe CPU VectorIndex instance
+     */
+    public static VectorIndex cpuThreadSafe(int dimensions) {
+        VectorIndex baseIndex = cpu(dimensions);
+        return new ThreadSafeVectorIndex(baseIndex);
+    }
+
+    /**
+     * Creates a thread-safe wrapper around a GPU index.
+     * 
+     * @param dimensions vector dimensionality
+     * @return thread-safe GPU VectorIndex instance
+     * @throws UnsupportedOperationException if CUDA is not available
+     */
+    public static VectorIndex gpuThreadSafe(int dimensions) {
+        return gpuThreadSafe(dimensions, DistanceMetric.EUCLIDEAN);
+    }
+
+    /**
+     * Creates a thread-safe wrapper around a GPU index with custom metric.
+     * 
+     * @param dimensions vector dimensionality
+     * @param metric distance metric to use
+     * @return thread-safe GPU VectorIndex instance
+     * @throws UnsupportedOperationException if CUDA is not available
+     */
+    public static VectorIndex gpuThreadSafe(int dimensions, DistanceMetric metric) {
+        VectorIndex baseIndex = gpu(dimensions, metric);
+        return new ThreadSafeVectorIndex(baseIndex);
+    }
+
     private static void validateMetric(DistanceMetric metric) {
         if (metric == null) {
             throw new IllegalArgumentException("Distance metric cannot be null");
