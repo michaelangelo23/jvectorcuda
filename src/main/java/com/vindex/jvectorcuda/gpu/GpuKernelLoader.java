@@ -72,7 +72,8 @@ public class GpuKernelLoader {
     private byte[] loadPTXFromResources(String fileName) {
         String resourcePath = "/kernels/" + fileName;
         
-        try (InputStream is = getClass().getResourceAsStream(resourcePath)) {
+        // Use class literal instead of getClass() to avoid issues with subclasses
+        try (InputStream is = GpuKernelLoader.class.getResourceAsStream(resourcePath)) {
             if (is == null) {
                 throw new RuntimeException("PTX file not found: " + resourcePath);
             }

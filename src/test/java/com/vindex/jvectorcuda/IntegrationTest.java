@@ -4,7 +4,6 @@ import com.vindex.jvectorcuda.cpu.CPUVectorIndex;
 import com.vindex.jvectorcuda.gpu.GPUVectorIndex;
 import org.junit.jupiter.api.*;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.*;

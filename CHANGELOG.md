@@ -40,12 +40,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Security (CodeQL):** Command injection vulnerability in BenchmarkRunner - now uses absolute paths with String[] for Runtime.exec()
 - **Security (CodeQL):** Missing @Override annotations on `searchBatch()` in CPUVectorIndex and GPUVectorIndex
 - **Security (CodeQL):** Uncaught NumberFormatException in BenchmarkFrameworkTest - now wrapped with try-catch
+- **Security (CodeQL #9):** Unsafe use of getResource in GpuKernelLoader - now uses class literal instead of getClass()
+- Deprecated clockRate field warnings in CudaDetector.java (suppressed with annotation, no JCuda alternative)
+- Unused import (ArrayList) removed from IntegrationTest.java
 - References to non-existent `STRATEGIC_INSIGHTS.md` replaced with `PERFORMANCE.md`
 - JAR duplicate strategy issue causing build failures (added `duplicatesStrategy = DuplicatesStrategy.EXCLUDE`)
 - Test failures from static module caching across CUDA contexts (changed to per-context caching)
 
 ### Removed
 - `hybrid()` factory method from `VectorIndexFactory` (was throwing UnsupportedOperationException)
+- Unused kernel files: `vector_add.cu`, `vector_add.ptx` (never integrated into library)
+- Orphaned test file: `VectorAdditionTest.java` (tested non-existent functionality)
 
 ## [1.0.0-SNAPSHOT] - In Development
 
