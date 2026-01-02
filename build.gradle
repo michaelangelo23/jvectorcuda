@@ -1,10 +1,11 @@
 plugins {
     id 'java-library'
     id 'maven-publish'
+    id 'signing'
     id 'jacoco'
 }
 
-group = 'com.vindex'
+group = 'io.github.michaelangelo23'
 version = '1.0.0'
 
 java {
@@ -115,4 +116,62 @@ tasks.register('javadocJar', Jar) {
 tasks.register('sourcesJar', Jar) {
     archiveClassifier = 'sources'
     from sourceSets.main.allSource
+}
+
+// Maven Central Publishing Configuration
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            
+            artifact sourcesJar
+            artifact javadocJar
+            
+            pom {
+                name = 'JVectorCUDA'
+                description = 'GPU-accelerated vector similarity search for Java with automatic CPU fallback'
+                url = 'https://github.com/michaelangelo23/jvectorcuda'
+                
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                
+                developers {
+                    developer {
+                        id = 'michaelangelo23'
+                        name = 'Michael Angelo'
+                        email = 'michaelangelo.dev@gmail.com'  // Update if you have a different email
+                    }
+                }
+                
+                scm {
+                    connection = 'scm:git:git://github.com/michaelangelo23/jvectorcuda.git'
+                    developerConnection = 'scm:git:ssh://github.com/michaelangelo23/jvectorcuda.git'
+                    url = 'https://github.com/michaelangelo23/jvectorcuda'
+                }
+            }
+        }
+    }
+    
+    repositories {
+        maven {
+            name = "CentralPortal"
+            url = "https://central.sonatype.com/api/v1/publisher/upload"
+            
+            credentials {
+                username = project.findProperty("centralPortalUsername") ?: System.getenv("CENTRAL_PORTAL_USERNAME")
+                password = project.findProperty("centralPortalToken") ?: System.getenv("CENTRAL_PORTAL_TOKEN")
+            }
+        }
+    }
+}
+
+// Sign artifacts for Maven Central
+signing {
+    // Only sign when explicitly publishing (not for regular builds/tests)
+    required { gradle.taskGraph.hasTask("publish") }
+    sign publishing.publications.mavenJava
 }
