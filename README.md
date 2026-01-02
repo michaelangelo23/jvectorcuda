@@ -1,6 +1,10 @@
 # JVectorCUDA
 A Java library for GPU-accelerated vector similarity search with automatic CPU fallback.
 
+```
+This library idea was created during the creation of "JavaLlama", a school project for OOP.
+```
+
 ## Overview
 JVectorCUDA provides CUDA-accelerated vector search for Java applications. When a GPU is unavailable, it automatically falls back to CPU-based search using JVector.
 
