@@ -13,12 +13,7 @@ import java.util.Random;
 import static jcuda.driver.JCudaDriver.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Tests for Euclidean distance CUDA kernel (POC #3).
- * This is the REAL vector search workload - should show GPU winning!
- * 
- * @author JVectorCUDA (AI-assisted, Human-verified)
- */
+// Tests for Euclidean distance CUDA kernel (POC #3)
 @DisplayName("Euclidean Distance Kernel Tests (POC #3)")
 class EuclideanDistanceTest {
 

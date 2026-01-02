@@ -16,33 +16,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static jcuda.driver.JCudaDriver.*;
 
-/**
- * GPU-accelerated vector index using persistent memory architecture.
- * 
- * <p>Key optimization: Database vectors are uploaded to GPU once and kept persistent,
- * achieving 5x+ speedup by avoiding repeated memory transfers.
- * 
- * <p>Architecture:
- * <pre>
- * Initial add():     Host → GPU (one-time cost)
- * Each search():     Query upload → Kernel → Results download
- * Database stays:    Persistent on GPU VRAM
- * </pre>
- * 
- * <p>Supported distance metrics:
- * <ul>
- *   <li>EUCLIDEAN - L2 distance (default)</li>
- *   <li>COSINE - 1 - cosine_similarity</li>
- *   <li>INNER_PRODUCT - negative dot product</li>
- * </ul>
- * 
- * <p><b>Thread Safety:</b> This class is NOT thread-safe. CUDA contexts are
- * inherently single-threaded. External synchronization is required if instances
- * are shared across threads.
- * 
- * @author JVectorCUDA (AI-assisted, Human-verified)
- * @since 1.0.0
- */
+// GPU-accelerated vector index with persistent memory. 5x+ speedup for batch queries. Not thread-safe.
 public class GPUVectorIndex implements VectorIndex {
 
     private static final Logger logger = LoggerFactory.getLogger(GPUVectorIndex.class);
@@ -67,36 +41,14 @@ public class GPUVectorIndex implements VectorIndex {
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private boolean databaseOnGpu = false;
 
-    /**
-     * Creates a new GPU vector index with specified dimensions.
-     * Uses Euclidean distance by default.
-     * 
-     * @param dimensions number of dimensions per vector
-     * @throws IllegalArgumentException if dimensions <= 0
-     */
     public GPUVectorIndex(int dimensions) {
         this(dimensions, DistanceMetric.EUCLIDEAN, 100_000);
     }
 
-    /**
-     * Creates a new GPU vector index with specified dimensions and distance metric.
-     * 
-     * @param dimensions number of dimensions per vector
-     * @param metric distance metric to use
-     * @throws IllegalArgumentException if dimensions <= 0 or metric is null
-     */
     public GPUVectorIndex(int dimensions, DistanceMetric metric) {
         this(dimensions, metric, 100_000);
     }
 
-    /**
-     * Creates a new GPU vector index with specified dimensions, metric, and capacity.
-     * 
-     * @param dimensions number of dimensions per vector
-     * @param metric distance metric to use
-     * @param initialCapacity initial capacity for vectors
-     * @throws IllegalArgumentException if dimensions <= 0, metric is null, or capacity <= 0
-     */
     public GPUVectorIndex(int dimensions, DistanceMetric metric, int initialCapacity) {
         if (dimensions <= 0) {
             throw new IllegalArgumentException("Dimensions must be positive, got: " + dimensions);
@@ -151,9 +103,6 @@ public class GPUVectorIndex implements VectorIndex {
         vectorCount += vectors.length;
     }
 
-    /**
-     * Validates dimensions and values of input vectors.
-     */
     private void validateInputVectors(float[][] vectors) {
         for (int i = 0; i < vectors.length; i++) {
             if (vectors[i].length != dimensions) {
@@ -165,18 +114,12 @@ public class GPUVectorIndex implements VectorIndex {
         }
     }
 
-    /**
-     * Ensures GPU memory can hold the required number of vectors.
-     */
     private void ensureCapacity(int requiredCount) {
         if (requiredCount > capacity) {
             expandCapacity(requiredCount);
         }
     }
 
-    /**
-     * Uploads vectors to GPU, either as initial upload or append.
-     */
     private void uploadVectorsToGpu(float[][] vectors) {
         float[] flatVectors = flattenVectors(vectors);
         
@@ -187,9 +130,6 @@ public class GPUVectorIndex implements VectorIndex {
         }
     }
 
-    /**
-     * Initial database upload - allocates GPU memory and copies data.
-     */
     private void allocateAndUploadInitial(float[] flatVectors, int count) {
         d_database = new CUdeviceptr();
         cuMemAlloc(d_database, (long) capacity * dimensions * Sizeof.FLOAT);
@@ -198,9 +138,6 @@ public class GPUVectorIndex implements VectorIndex {
         logger.debug("Initial database upload: {} vectors", count);
     }
 
-    /**
-     * Appends vectors to existing GPU database.
-     */
     private void appendToExisting(float[] flatVectors, int count) {
         long offset = (long) vectorCount * dimensions * Sizeof.FLOAT;
         CUdeviceptr offsetPtr = d_database.withByteOffset(offset);
@@ -251,9 +188,6 @@ public class GPUVectorIndex implements VectorIndex {
         return result;
     }
 
-    /**
-     * Validates search parameters.
-     */
     private void validateSearchParams(float[] query, int k) {
         if (query == null || query.length != dimensions) {
             throw new IllegalArgumentException(
@@ -265,9 +199,6 @@ public class GPUVectorIndex implements VectorIndex {
         }
     }
 
-    /**
-     * Computes distances from query to all vectors using GPU kernel.
-     */
     private float[] computeDistancesOnGpu(float[] query) {
         CUdeviceptr d_query = uploadQuery(query);
         launchDistanceKernel(d_query);
@@ -276,9 +207,6 @@ public class GPUVectorIndex implements VectorIndex {
         return distances;
     }
 
-    /**
-     * Uploads query vector to GPU.
-     */
     private CUdeviceptr uploadQuery(float[] query) {
         CUdeviceptr d_query = new CUdeviceptr();
         cuMemAlloc(d_query, (long) dimensions * Sizeof.FLOAT);
@@ -286,9 +214,6 @@ public class GPUVectorIndex implements VectorIndex {
         return d_query;
     }
 
-    /**
-     * Launches the distance kernel on GPU.
-     */
     private void launchDistanceKernel(CUdeviceptr d_query) {
         int gridSize = (vectorCount + BLOCK_SIZE - 1) / BLOCK_SIZE;
         Pointer params = Pointer.to(
@@ -301,18 +226,12 @@ public class GPUVectorIndex implements VectorIndex {
         kernelLoader.launch(gridSize, BLOCK_SIZE, params);
     }
 
-    /**
-     * Downloads computed distances from GPU.
-     */
     private float[] downloadDistances() {
         float[] distances = new float[vectorCount];
         cuMemcpyDtoH(Pointer.to(distances), d_distances, (long) vectorCount * Sizeof.FLOAT);
         return distances;
     }
 
-    /**
-     * Builds search result with top-k neighbors.
-     */
     private SearchResult buildSearchResult(float[] distances, int k, long startTime) {
         int[] topKIndices = findTopK(distances, k);
         float[] topKDistances = new float[k];
@@ -338,29 +257,14 @@ public class GPUVectorIndex implements VectorIndex {
         return vectorCount;
     }
 
-    /**
-     * Returns whether the database is currently loaded on GPU.
-     * 
-     * @return true if database is on GPU
-     */
     public boolean isDatabaseOnGpu() {
         return databaseOnGpu;
     }
 
-    /**
-     * Returns the current capacity of the index.
-     * 
-     * @return maximum number of vectors before expansion
-     */
     public int getCapacity() {
         return capacity;
     }
 
-    /**
-     * Returns the distance metric used by this index.
-     * 
-     * @return the distance metric (EUCLIDEAN, COSINE, or INNER_PRODUCT)
-     */
     public DistanceMetric getDistanceMetric() {
         return distanceMetric;
     }
@@ -390,13 +294,6 @@ public class GPUVectorIndex implements VectorIndex {
         }
     }
 
-    /**
-     * Validates that vector values are finite (no NaN or Infinity).
-     * 
-     * @param vector the vector to validate
-     * @param index the vector index for error messages
-     * @throws IllegalArgumentException if vector contains NaN or Infinity
-     */
     private void validateVectorValues(float[] vector, int index) {
         for (int i = 0; i < vector.length; i++) {
             if (!Float.isFinite(vector[i])) {
@@ -415,14 +312,10 @@ public class GPUVectorIndex implements VectorIndex {
         return flat;
     }
 
-    /**
-     * Find indices of k smallest distances using a max-heap.
-     * Time complexity: O(n log k) which is optimal for small k.
-     */
+    // Find k smallest distances using max-heap, O(n log k)
     private int[] findTopK(float[] distances, int k) {
         int n = distances.length;
         
-        // Use a max-heap of size k to track smallest distances
         java.util.PriorityQueue<int[]> maxHeap = new java.util.PriorityQueue<>(
             k, (a, b) -> Float.compare(distances[b[0]], distances[a[0]])
         );
@@ -436,7 +329,6 @@ public class GPUVectorIndex implements VectorIndex {
             }
         }
         
-        // Extract indices in order (smallest first)
         int[] result = new int[k];
         for (int i = k - 1; i >= 0; i--) {
             result[i] = maxHeap.poll()[0];

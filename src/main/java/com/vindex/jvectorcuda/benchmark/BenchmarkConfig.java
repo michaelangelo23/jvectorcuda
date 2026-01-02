@@ -4,29 +4,10 @@ import com.vindex.jvectorcuda.DistanceMetric;
 
 import java.util.Objects;
 
-/**
- * Configuration for benchmark runs.
- * 
- * <p>Immutable configuration object that specifies all parameters for a benchmark.
- * Use the builder pattern for flexible configuration.
- * 
- * <p>Example usage:
- * <pre>{@code
- * BenchmarkConfig config = BenchmarkConfig.builder()
- *     .vectorCount(100_000)
- *     .dimensions(384)
- *     .queryCount(100)
- *     .warmupIterations(5)
- *     .measuredIterations(20)
- *     .build();
- * }</pre>
- * 
- * @author JVectorCUDA (AI-assisted, Human-verified)
- * @since 1.0.0
- */
+// Immutable benchmark configuration. Use builder() to create.
 public final class BenchmarkConfig {
 
-    /** Default configuration for quick benchmarks */
+    // Quick benchmark defaults
     public static final BenchmarkConfig DEFAULT = builder()
         .vectorCount(10_000)
         .dimensions(384)
@@ -36,7 +17,7 @@ public final class BenchmarkConfig {
         .measuredIterations(10)
         .build();
 
-    /** Configuration for comprehensive benchmarks */
+    // Comprehensive benchmark config
     public static final BenchmarkConfig COMPREHENSIVE = builder()
         .vectorCount(100_000)
         .dimensions(384)
@@ -46,7 +27,7 @@ public final class BenchmarkConfig {
         .measuredIterations(50)
         .build();
 
-    /** Configuration for stress testing */
+    // Stress test config
     public static final BenchmarkConfig STRESS_TEST = builder()
         .vectorCount(500_000)
         .dimensions(384)
@@ -80,51 +61,29 @@ public final class BenchmarkConfig {
         this.randomSeed = builder.randomSeed;
     }
 
-    /**
-     * Creates a new builder for BenchmarkConfig.
-     * 
-     * @return new builder instance
-     */
+    // Creates a new builder
     public static Builder builder() {
         return new Builder();
     }
 
-    // ==================== Computed Properties ====================
-
-    /**
-     * Calculates total data size in bytes (for GPU memory estimation).
-     * 
-     * @return estimated memory usage in bytes
-     */
+    // Calculates estimated GPU memory usage in bytes
     public long getEstimatedMemoryBytes() {
-        // Database + distances buffer
         long databaseBytes = (long) vectorCount * dimensions * Float.BYTES;
         long distancesBytes = (long) vectorCount * Float.BYTES;
         long queryBytes = (long) dimensions * Float.BYTES;
         return databaseBytes + distancesBytes + queryBytes;
     }
 
-    /**
-     * Returns estimated memory usage in megabytes.
-     * 
-     * @return memory in MB
-     */
+    // Returns estimated memory in MB
     public double getEstimatedMemoryMB() {
         return getEstimatedMemoryBytes() / (1024.0 * 1024.0);
     }
 
-    /**
-     * Checks if this configuration is suitable for the given GPU memory.
-     * 
-     * @param availableMemoryMB available GPU memory in MB
-     * @return true if configuration fits in memory (with 20% safety margin)
-     */
+    // Checks if config fits in GPU memory (with 20% safety margin)
     public boolean fitsInMemory(double availableMemoryMB) {
-        double requiredMB = getEstimatedMemoryMB() * 1.2; // 20% safety margin
+        double requiredMB = getEstimatedMemoryMB() * 1.2;
         return requiredMB <= availableMemoryMB;
     }
-
-    // ==================== Getters ====================
 
     public int getVectorCount() {
         return vectorCount;
@@ -192,11 +151,7 @@ public final class BenchmarkConfig {
         return Objects.hash(vectorCount, dimensions, queryCount, k, distanceMetric);
     }
 
-    // ==================== Builder ====================
-
-    /**
-     * Builder for creating BenchmarkConfig instances.
-     */
+    // Builder for BenchmarkConfig
     public static final class Builder {
         private int vectorCount = 10_000;
         private int dimensions = 384;
@@ -279,11 +234,7 @@ public final class BenchmarkConfig {
             return this;
         }
 
-        /**
-         * Builds the BenchmarkConfig instance.
-         * 
-         * @return immutable BenchmarkConfig
-         */
+        // Builds the immutable config
         public BenchmarkConfig build() {
             return new BenchmarkConfig(this);
         }

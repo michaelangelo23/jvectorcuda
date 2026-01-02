@@ -21,18 +21,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Comprehensive tests for the JVectorCUDA Benchmarking Framework.
- * 
- * <p>Test categories following test-feature.md:
- * <ul>
- *   <li>Correctness: Validates benchmark accuracy and consistency</li>
- *   <li>Edge Cases: Boundary conditions, empty inputs, extreme values</li>
- *   <li>AI Blind Spots: Thread safety, concurrency, overflow protection</li>
- * </ul>
- * 
- * @author JVectorCUDA (AI-assisted, Human-verified)
- */
+// Tests for BenchmarkConfig, BenchmarkResult, BenchmarkFramework, and PerformanceMetricsLogger
 @DisplayName("Benchmark Framework Tests")
 class BenchmarkFrameworkTest {
 

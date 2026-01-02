@@ -6,14 +6,7 @@ import org.junit.jupiter.api.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Comprehensive tests for VectorIndex implementations.
- * 
- * <p>Tests both CPU and GPU implementations to ensure they produce
- * consistent results and handle edge cases correctly.
- * 
- * @author JVectorCUDA (AI-assisted, Human-verified)
- */
+// Tests for CPU and GPU VectorIndex implementations
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class VectorIndexTest {
 

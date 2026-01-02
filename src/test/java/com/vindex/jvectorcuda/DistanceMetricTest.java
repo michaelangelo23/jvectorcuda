@@ -13,16 +13,7 @@ import java.util.Random;
 import static jcuda.driver.JCudaDriver.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Comprehensive tests for distance metric CUDA kernels.
- * 
- * <p>Tests all three distance metrics (Euclidean, Cosine, Inner Product)
- * for correctness, edge cases, and AI blind spots.
- * 
- * <p>Following TDD workflow: tests written BEFORE integration into GPUVectorIndex.
- * 
- * @author JVectorCUDA (AI-assisted, Human-verified)
- */
+// Tests for Euclidean, Cosine, and Inner Product CUDA kernels
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class DistanceMetricTest {
 

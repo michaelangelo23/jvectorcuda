@@ -12,12 +12,7 @@ import java.util.Random;
 import static jcuda.driver.JCudaDriver.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Tests for vector addition CUDA kernel (POC #2).
- * Validates correctness, performance, and edge cases.
- * 
- * @author JVectorCUDA (AI-assisted, Human-verified)
- */
+// Tests for vector addition CUDA kernel (POC #2)
 @DisplayName("Vector Addition Kernel Tests (POC #2)")
 class VectorAdditionTest {
 

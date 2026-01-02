@@ -12,21 +12,7 @@ import java.util.Random;
 
 import static jcuda.driver.JCudaDriver.*;
 
-/**
- * GPU Break-Even Point Benchmark Suite
- * 
- * Purpose: Find when GPU acceleration becomes beneficial vs CPU
- * 
- * Tests different scenarios:
- * - Vector counts: 1K, 10K, 100K, 1M
- * - Batch sizes: 1, 10, 100, 1000 queries
- * - Memory transfer overhead analysis
- * - Persistent GPU memory (data stays on GPU)
- * 
- * Results guide adaptive routing strategy for hybrid CPU/GPU approach.
- * 
- * @author JVectorCUDA (AI-assisted, Human-verified)
- */
+// Benchmarks to find when GPU becomes faster than CPU for vector search
 @DisplayName("GPU Break-Even Point Benchmarks")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class GpuBreakEvenTest {
@@ -65,9 +51,7 @@ public class GpuBreakEvenTest {
         // Kernel loader resources are managed internally
     }
 
-    /**
-     * Test 1: Find GPU break-even point across different dataset sizes and batch sizes
-     */
+    // Test 1: Find GPU break-even point across dataset sizes and batch sizes
     @Test
     @Order(1)
     @DisplayName("Find GPU break-even point (dataset size x batch size)")
@@ -106,9 +90,7 @@ public class GpuBreakEvenTest {
         System.out.println("Note: GPU speedup depends on JNI overhead and memory transfer costs.");
     }
 
-    /**
-     * Test 2: Measure memory transfer overhead percentage
-     */
+    // Test 2: Measure memory transfer overhead percentage
     @Test
     @Order(2)
     @DisplayName("Measure memory transfer overhead percentage")
@@ -156,9 +138,7 @@ public class GpuBreakEvenTest {
         System.out.println("\nConclusion: For persistent data scenarios, keep database on GPU.");
     }
 
-    /**
-     * Test 3: Test persistent GPU memory (amortize transfer cost)
-     */
+    // Test 3: Persistent GPU memory - upload database once, query many times
     @Test
     @Order(3)
     @DisplayName("Test persistent GPU memory (amortize transfer cost)")
@@ -233,12 +213,7 @@ public class GpuBreakEvenTest {
         System.out.println("\nThis data helps determine when to route queries to GPU vs CPU.");
     }
 
-    /**
-     * Test 4: Test different vector dimensions (128, 384, 768, 1536)
-     * 
-     * Note: Uses scaled vector counts to avoid GPU memory exhaustion on smaller GPUs.
-     * Higher dimensions require more memory per vector.
-     */
+    // Test 4: Different dimensions (scaled vector counts to fit GPU memory)
     @Test
     @Order(4)
     @DisplayName("Test different vector dimensions (128, 384, 768, 1536)")
@@ -417,9 +392,7 @@ public class GpuBreakEvenTest {
         return String.valueOf(number);
     }
 
-    /**
-     * Simple result container for benchmark measurements
-     */
+    // Simple result container for benchmark measurements
     private static class BenchmarkResult {
         final double cpuTimeMs;
         final double gpuTimeMs;

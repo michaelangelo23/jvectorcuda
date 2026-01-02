@@ -15,56 +15,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Comprehensive performance metrics logger for JVectorCUDA operations.
- * 
- * <p>Provides detailed timing breakdowns for:
- * <ul>
- *   <li>Memory allocation and deallocation</li>
- *   <li>Host-to-device and device-to-host transfers</li>
- *   <li>Kernel execution time</li>
- *   <li>CPU fallback operations</li>
- *   <li>End-to-end operation timing</li>
- * </ul>
- * 
- * <p>Supports multiple output formats:
- * <ul>
- *   <li>SLF4J logging (DEBUG/INFO/TRACE levels)</li>
- *   <li>CSV export for analysis</li>
- *   <li>Console summary reports</li>
- * </ul>
- * 
- * <p>Example usage:
- * <pre>{@code
- * PerformanceMetricsLogger logger = PerformanceMetricsLogger.getInstance();
- * 
- * // Record individual operations
- * logger.recordOperation("GPU_UPLOAD", 15.5);
- * logger.recordOperation("KERNEL_EXEC", 3.2);
- * logger.recordOperation("GPU_DOWNLOAD", 8.1);
- * 
- * // Or use timing blocks
- * try (PerformanceMetricsLogger.TimingBlock block = logger.startTiming("SEARCH")) {
- *     // ... operation ...
- * } // Automatically records timing when block closes
- * 
- * // Export results
- * logger.exportToCsv(Path.of("metrics.csv"));
- * logger.printSummary();
- * }</pre>
- * 
- * @author JVectorCUDA (AI-assisted, Human-verified)
- * @since 1.0.0
- */
+// Thread-safe performance metrics logger with CSV export support.
 public class PerformanceMetricsLogger {
 
     private static final Logger logger = LoggerFactory.getLogger(PerformanceMetricsLogger.class);
 
-    // Singleton instance
     private static volatile PerformanceMetricsLogger instance;
     private static final Object LOCK = new Object();
 
-    // Operation categories
     public static final String OP_GPU_UPLOAD = "GPU_UPLOAD";
     public static final String OP_GPU_DOWNLOAD = "GPU_DOWNLOAD";
     public static final String OP_KERNEL_EXEC = "KERNEL_EXEC";
@@ -74,35 +32,25 @@ public class PerformanceMetricsLogger {
     public static final String OP_TOTAL_SEARCH = "TOTAL_SEARCH";
     public static final String OP_TOTAL_ADD = "TOTAL_ADD";
 
-    // Storage for metrics
     private final Map<String, List<MetricEntry>> metricsByOperation;
     private final List<MetricEntry> allMetrics;
     private volatile boolean enabled = true;
     private volatile LogLevel logLevel = LogLevel.INFO;
 
-    /**
-     * Log levels for metric output.
-     */
+    // Log verbosity levels
     public enum LogLevel {
-        TRACE,  // Log every operation
-        DEBUG,  // Log operations with timing details
-        INFO,   // Log only summaries
-        NONE    // Disable logging
+        TRACE,
+        DEBUG,
+        INFO,
+        NONE
     }
 
-    /**
-     * Private constructor for singleton pattern.
-     */
     private PerformanceMetricsLogger() {
         this.metricsByOperation = new ConcurrentHashMap<>();
         this.allMetrics = Collections.synchronizedList(new ArrayList<>());
     }
 
-    /**
-     * Gets the singleton instance of the logger.
-     * 
-     * @return the logger instance
-     */
+    // Returns singleton instance
     public static PerformanceMetricsLogger getInstance() {
         if (instance == null) {
             synchronized (LOCK) {
@@ -114,23 +62,12 @@ public class PerformanceMetricsLogger {
         return instance;
     }
 
-    /**
-     * Records a timed operation.
-     * 
-     * @param operation operation name (use constants like OP_GPU_UPLOAD)
-     * @param durationMs duration in milliseconds
-     */
+    // Records a timed operation
     public void recordOperation(String operation, double durationMs) {
         recordOperation(operation, durationMs, null);
     }
 
-    /**
-     * Records a timed operation with additional details.
-     * 
-     * @param operation operation name
-     * @param durationMs duration in milliseconds
-     * @param details additional details (e.g., "vectors=10000, dims=384")
-     */
+    // Records a timed operation with details
     public void recordOperation(String operation, double durationMs, String details) {
         if (!enabled) {
             return;
@@ -145,33 +82,17 @@ public class PerformanceMetricsLogger {
         logEntry(entry);
     }
 
-    /**
-     * Starts a timing block that automatically records duration when closed.
-     * 
-     * @param operation operation name
-     * @return timing block (use with try-with-resources)
-     */
+    // Starts auto-recording timing block (use with try-with-resources)
     public TimingBlock startTiming(String operation) {
         return new TimingBlock(this, operation, null);
     }
 
-    /**
-     * Starts a timing block with additional details.
-     * 
-     * @param operation operation name
-     * @param details additional context
-     * @return timing block
-     */
+    // Starts timing block with details
     public TimingBlock startTiming(String operation, String details) {
         return new TimingBlock(this, operation, details);
     }
 
-    /**
-     * Gets statistics for a specific operation.
-     * 
-     * @param operation operation name
-     * @return operation statistics, or null if no data
-     */
+    // Gets stats for a specific operation
     public OperationStats getStats(String operation) {
         List<MetricEntry> entries = metricsByOperation.get(operation);
         if (entries == null || entries.isEmpty()) {
@@ -180,11 +101,7 @@ public class PerformanceMetricsLogger {
         return calculateStats(operation, entries);
     }
 
-    /**
-     * Gets statistics for all operations.
-     * 
-     * @return map of operation name to statistics
-     */
+    // Gets stats for all operations
     public Map<String, OperationStats> getAllStats() {
         Map<String, OperationStats> stats = new ConcurrentHashMap<>();
         for (Map.Entry<String, List<MetricEntry>> entry : metricsByOperation.entrySet()) {
@@ -193,9 +110,7 @@ public class PerformanceMetricsLogger {
         return stats;
     }
 
-    /**
-     * Prints a summary of all recorded metrics.
-     */
+    // Prints summary of all metrics
     public void printSummary() {
         System.out.println("\n=== Performance Metrics Summary ===\n");
         System.out.printf("%-20s %10s %10s %10s %10s %10s%n",
@@ -224,12 +139,7 @@ public class PerformanceMetricsLogger {
             allStats.values().stream().mapToDouble(s -> s.totalMs).sum());
     }
 
-    /**
-     * Exports all metrics to CSV format.
-     * 
-     * @param outputPath path to output file
-     * @throws IOException if writing fails
-     */
+    // Exports all metrics to CSV
     public void exportToCsv(Path outputPath) throws IOException {
         Files.createDirectories(outputPath.getParent());
         
@@ -250,12 +160,7 @@ public class PerformanceMetricsLogger {
         logger.info("Exported {} metrics to {}", allMetrics.size(), outputPath);
     }
 
-    /**
-     * Exports summary statistics to CSV.
-     * 
-     * @param outputPath path to output file
-     * @throws IOException if writing fails
-     */
+    // Exports summary stats to CSV
     public void exportStatsToCsv(Path outputPath) throws IOException {
         Files.createDirectories(outputPath.getParent());
         
@@ -280,61 +185,32 @@ public class PerformanceMetricsLogger {
         logger.info("Exported statistics to {}", outputPath);
     }
 
-    /**
-     * Clears all recorded metrics.
-     */
+    // Clears all recorded metrics
     public void clear() {
         metricsByOperation.clear();
         allMetrics.clear();
         logger.debug("Metrics cleared");
     }
 
-    /**
-     * Sets whether metrics collection is enabled.
-     * 
-     * @param enabled true to enable, false to disable
-     */
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
     }
 
-    /**
-     * Returns whether metrics collection is enabled.
-     * 
-     * @return true if enabled
-     */
     public boolean isEnabled() {
         return enabled;
     }
 
-    /**
-     * Sets the log level for metric output.
-     * 
-     * @param level desired log level
-     */
     public void setLogLevel(LogLevel level) {
         this.logLevel = level;
     }
 
-    /**
-     * Returns the current log level.
-     * 
-     * @return current log level
-     */
     public LogLevel getLogLevel() {
         return logLevel;
     }
 
-    /**
-     * Returns the total number of recorded metrics.
-     * 
-     * @return metric count
-     */
     public int getMetricCount() {
         return allMetrics.size();
     }
-
-    // ==================== Private Methods ====================
 
     private void logEntry(MetricEntry entry) {
         switch (logLevel) {
@@ -381,12 +257,7 @@ public class PerformanceMetricsLogger {
         return new OperationStats(operation, entries.size(), total, avg, min, max, stdDev);
     }
 
-    // ==================== Inner Classes ====================
-
-    /**
-     * A timing block for automatic duration measurement.
-     * Use with try-with-resources.
-     */
+    // Auto-recording timing block (use with try-with-resources)
     public static class TimingBlock implements AutoCloseable {
         private final PerformanceMetricsLogger metricsLogger;
         private final String operation;
@@ -406,19 +277,12 @@ public class PerformanceMetricsLogger {
             metricsLogger.recordOperation(operation, durationMs, details);
         }
 
-        /**
-         * Returns the elapsed time so far without closing the block.
-         * 
-         * @return elapsed time in milliseconds
-         */
+        // Returns elapsed time without closing
         public double getElapsedMs() {
             return (System.nanoTime() - startNanos) / 1_000_000.0;
         }
     }
 
-    /**
-     * A single metric entry.
-     */
     private static class MetricEntry {
         final String operation;
         final double durationMs;
@@ -433,9 +297,7 @@ public class PerformanceMetricsLogger {
         }
     }
 
-    /**
-     * Statistics for a specific operation type.
-     */
+    // Statistics for an operation type
     public static class OperationStats {
         public final String operation;
         public final int count;

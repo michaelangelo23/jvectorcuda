@@ -11,35 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-/**
- * Comprehensive benchmarking framework for CPU vs GPU vector search comparison.
- * 
- * <p>Provides accurate performance measurements including:
- * <ul>
- *   <li>CPU and GPU timing with warmup iterations</li>
- *   <li>Memory transfer overhead analysis</li>
- *   <li>Throughput calculations</li>
- *   <li>GPU memory usage profiling</li>
- * </ul>
- * 
- * <p>Example usage:
- * <pre>{@code
- * BenchmarkFramework benchmark = new BenchmarkFramework();
- * 
- * // Quick benchmark
- * BenchmarkResult result = benchmark.run(BenchmarkConfig.DEFAULT);
- * System.out.println(result.toSummaryString());
- * 
- * // Comprehensive comparison
- * List<BenchmarkResult> results = benchmark.runSuite(
- *     List.of(1000, 10000, 100000),  // vector counts
- *     List.of(128, 384, 768)          // dimensions
- * );
- * }</pre>
- * 
- * @author JVectorCUDA (AI-assisted, Human-verified)
- * @since 1.0.0
- */
+// CPU vs GPU benchmark framework with timing and memory analysis.
 public class BenchmarkFramework {
 
     private static final Logger logger = LoggerFactory.getLogger(BenchmarkFramework.class);
@@ -47,10 +19,7 @@ public class BenchmarkFramework {
     private final String gpuName;
     private final boolean gpuAvailable;
 
-    /**
-     * Creates a new benchmark framework.
-     * Automatically detects GPU availability.
-     */
+    // Auto-detects GPU availability
     public BenchmarkFramework() {
         this.gpuAvailable = CudaDetector.isAvailable();
         this.gpuName = gpuAvailable ? extractGpuName(CudaDetector.getGpuInfo()) : "No GPU";
@@ -58,10 +27,7 @@ public class BenchmarkFramework {
         logger.info("BenchmarkFramework initialized. GPU: {} (available: {})", gpuName, gpuAvailable);
     }
 
-    /**
-     * Extracts the GPU name from the info string.
-     * Info format: "GPU: [name], Compute: X.Y, Memory: Z MB"
-     */
+    // Extracts GPU name from info string (format: "GPU: [name], Compute: X.Y, Memory: Z MB")
     private String extractGpuName(String gpuInfo) {
         if (gpuInfo == null || gpuInfo.isEmpty()) {
             return "Unknown GPU";
@@ -76,12 +42,7 @@ public class BenchmarkFramework {
         return gpuInfo;
     }
 
-    /**
-     * Runs a single benchmark with the given configuration.
-     * 
-     * @param config benchmark configuration
-     * @return benchmark results
-     */
+    // Runs a single benchmark with given config
     public BenchmarkResult run(BenchmarkConfig config) {
         logger.info("Starting benchmark: {}", config);
         
@@ -124,13 +85,7 @@ public class BenchmarkFramework {
             .build();
     }
 
-    /**
-     * Runs a suite of benchmarks with different configurations.
-     * 
-     * @param vectorCounts list of vector counts to test
-     * @param dimensionsList list of dimensions to test
-     * @return list of benchmark results
-     */
+    // Runs benchmarks across multiple vector counts and dimensions
     public List<BenchmarkResult> runSuite(List<Integer> vectorCounts, List<Integer> dimensionsList) {
         List<BenchmarkResult> results = new ArrayList<>();
         
@@ -160,13 +115,7 @@ public class BenchmarkFramework {
         return results;
     }
 
-    /**
-     * Runs persistent memory benchmark (upload once, query many times).
-     * This demonstrates the 5x+ speedup scenario.
-     * 
-     * @param config benchmark configuration
-     * @return benchmark result with persistent memory timing
-     */
+    // Upload once, query many times benchmark (demonstrates 5x+ speedup)
     public BenchmarkResult runPersistentMemoryBenchmark(BenchmarkConfig config) {
         logger.info("Starting persistent memory benchmark: {}", config);
         
@@ -205,11 +154,7 @@ public class BenchmarkFramework {
             .build();
     }
 
-    /**
-     * Prints a formatted comparison table to the console.
-     * 
-     * @param results list of benchmark results
-     */
+    // Prints formatted comparison table to console
     public void printComparisonTable(List<BenchmarkResult> results) {
         System.out.println("\n=== JVectorCUDA Benchmark Results ===\n");
         System.out.printf("%-12s %-8s %-10s %-10s %-10s %-8s %-12s%n",
@@ -231,8 +176,6 @@ public class BenchmarkFramework {
         System.out.println("\nNote: GPU speedup > 1.0x means GPU is faster than CPU.");
         System.out.println("For persistent memory scenarios (many queries, same dataset), expect 5x+ speedup.");
     }
-
-    // ==================== Private Benchmark Methods ====================
 
     private double benchmarkCpu(float[][] database, float[][] queries, BenchmarkConfig config) {
         try (CPUVectorIndex index = new CPUVectorIndex(config.getDimensions())) {
@@ -362,25 +305,21 @@ public class BenchmarkFramework {
         }
     }
 
-    // ==================== Helper Methods ====================
-
     private float[][] generateRandomVectors(int count, int dimensions, long seed) {
         Random random = new Random(seed);
         float[][] vectors = new float[count][dimensions];
         
         for (int i = 0; i < count; i++) {
             for (int j = 0; j < dimensions; j++) {
-                vectors[i][j] = random.nextFloat() * 2.0f - 1.0f; // Range [-1, 1]
+                vectors[i][j] = random.nextFloat() * 2.0f - 1.0f;
             }
         }
         
         return vectors;
     }
 
+    // Database + distances + query = total GPU memory
     private long estimateGpuMemory(BenchmarkConfig config) {
-        // Database: vectorCount × dimensions × 4 bytes
-        // Distances: vectorCount × 4 bytes
-        // Query: dimensions × 4 bytes
         return (long) config.getVectorCount() * config.getDimensions() * Float.BYTES +
                (long) config.getVectorCount() * Float.BYTES +
                (long) config.getDimensions() * Float.BYTES;
@@ -395,25 +334,15 @@ public class BenchmarkFramework {
         return String.valueOf(number);
     }
 
-    /**
-     * Returns whether GPU is available for benchmarking.
-     * 
-     * @return true if GPU is available
-     */
+    // Returns true if GPU is available
     public boolean isGpuAvailable() {
         return gpuAvailable;
     }
 
-    /**
-     * Returns the GPU name.
-     * 
-     * @return GPU name or "No GPU"
-     */
+    // Returns GPU name or "No GPU"
     public String getGpuName() {
         return gpuName;
     }
-
-    // ==================== Inner Classes ====================
 
     private static class GpuBenchmarkResult {
         final double totalTimeMs;

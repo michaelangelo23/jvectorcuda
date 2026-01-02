@@ -3,47 +3,23 @@ package com.vindex.jvectorcuda.benchmark;
 import java.time.Instant;
 import java.util.Objects;
 
-/**
- * Immutable value object containing benchmark results.
- * 
- * <p>Captures timing, memory usage, and comparison metrics from a benchmark run.
- * All timing values are in milliseconds for consistency.
- * 
- * <p>Example usage:
- * <pre>{@code
- * BenchmarkResult result = BenchmarkResult.builder()
- *     .cpuTimeMs(150.5)
- *     .gpuTimeMs(28.3)
- *     .vectorCount(100000)
- *     .dimensions(384)
- *     .build();
- * 
- * System.out.printf("Speedup: %.2fx%n", result.getSpeedup());
- * }</pre>
- * 
- * @author JVectorCUDA (AI-assisted, Human-verified)
- * @since 1.0.0
- */
+// Immutable benchmark results with timing and memory metrics.
 public final class BenchmarkResult {
 
-    // Timing metrics (milliseconds)
     private final double cpuTimeMs;
     private final double gpuTimeMs;
     private final double gpuTransferTimeMs;
     private final double gpuComputeTimeMs;
     
-    // Memory metrics (bytes)
     private final long gpuMemoryUsedBytes;
     private final long cpuMemoryUsedBytes;
     
-    // Configuration
     private final int vectorCount;
     private final int dimensions;
     private final int queryCount;
     private final int k;
     private final String distanceMetric;
     
-    // Metadata
     private final Instant timestamp;
     private final String gpuName;
     private final int warmupIterations;
@@ -67,22 +43,12 @@ public final class BenchmarkResult {
         this.measuredIterations = builder.measuredIterations;
     }
 
-    /**
-     * Creates a new builder for BenchmarkResult.
-     * 
-     * @return new builder instance
-     */
+    // Creates a new builder
     public static Builder builder() {
         return new Builder();
     }
 
-    // ==================== Computed Metrics ====================
-
-    /**
-     * Calculates GPU speedup over CPU.
-     * 
-     * @return speedup factor (>1 means GPU is faster, <1 means CPU is faster)
-     */
+    // GPU speedup over CPU (>1 = GPU faster, <1 = CPU faster)
     public double getSpeedup() {
         if (gpuTimeMs <= 0) {
             return 0.0;
@@ -90,20 +56,12 @@ public final class BenchmarkResult {
         return cpuTimeMs / gpuTimeMs;
     }
 
-    /**
-     * Returns whether GPU was faster than CPU.
-     * 
-     * @return true if GPU speedup > 1.0
-     */
+    // True if GPU was faster
     public boolean isGpuFaster() {
         return getSpeedup() > 1.0;
     }
 
-    /**
-     * Calculates transfer overhead as percentage of total GPU time.
-     * 
-     * @return transfer overhead percentage (0-100)
-     */
+    // Transfer overhead as percentage of total GPU time
     public double getTransferOverheadPercent() {
         if (gpuTimeMs <= 0) {
             return 0.0;
@@ -111,11 +69,7 @@ public final class BenchmarkResult {
         return (gpuTransferTimeMs / gpuTimeMs) * 100.0;
     }
 
-    /**
-     * Calculates throughput in queries per second.
-     * 
-     * @return queries per second for GPU
-     */
+    // GPU queries per second
     public double getGpuThroughput() {
         if (gpuTimeMs <= 0 || queryCount <= 0) {
             return 0.0;
@@ -123,11 +77,7 @@ public final class BenchmarkResult {
         return (queryCount * 1000.0) / gpuTimeMs;
     }
 
-    /**
-     * Calculates throughput in queries per second for CPU.
-     * 
-     * @return queries per second for CPU
-     */
+    // CPU queries per second
     public double getCpuThroughput() {
         if (cpuTimeMs <= 0 || queryCount <= 0) {
             return 0.0;
@@ -135,16 +85,10 @@ public final class BenchmarkResult {
         return (queryCount * 1000.0) / cpuTimeMs;
     }
 
-    /**
-     * Returns GPU memory usage in megabytes.
-     * 
-     * @return memory usage in MB
-     */
+    // GPU memory usage in MB
     public double getGpuMemoryUsedMB() {
         return gpuMemoryUsedBytes / (1024.0 * 1024.0);
     }
-
-    // ==================== Getters ====================
 
     public double getCpuTimeMs() {
         return cpuTimeMs;
@@ -206,13 +150,7 @@ public final class BenchmarkResult {
         return measuredIterations;
     }
 
-    // ==================== Formatting ====================
-
-    /**
-     * Returns a formatted summary string for logging.
-     * 
-     * @return multi-line summary string
-     */
+    // Multi-line summary for logging
     public String toSummaryString() {
         StringBuilder sb = new StringBuilder();
         sb.append("=== Benchmark Results ===\n");
@@ -236,22 +174,14 @@ public final class BenchmarkResult {
         return sb.toString();
     }
 
-    /**
-     * Returns a single-line summary suitable for CSV export.
-     * 
-     * @return CSV-formatted line
-     */
+    // Single-line CSV format
     public String toCsvLine() {
         return String.format("%s,%s,%d,%d,%d,%d,%s,%.2f,%.2f,%.2f,%.2f,%.2f,%d",
             timestamp, gpuName, vectorCount, dimensions, queryCount, k, distanceMetric,
             cpuTimeMs, gpuTimeMs, gpuTransferTimeMs, gpuComputeTimeMs, getSpeedup(), gpuMemoryUsedBytes);
     }
 
-    /**
-     * Returns CSV header line.
-     * 
-     * @return CSV header
-     */
+    // CSV header line
     public static String getCsvHeader() {
         return "timestamp,gpu_name,vector_count,dimensions,query_count,k,metric,cpu_ms,gpu_ms,transfer_ms,compute_ms,speedup,gpu_memory_bytes";
     }
@@ -278,11 +208,7 @@ public final class BenchmarkResult {
         return Objects.hash(cpuTimeMs, gpuTimeMs, vectorCount, dimensions);
     }
 
-    // ==================== Builder ====================
-
-    /**
-     * Builder for creating BenchmarkResult instances.
-     */
+    // Builder for BenchmarkResult
     public static final class Builder {
         private double cpuTimeMs;
         private double gpuTimeMs;
@@ -377,12 +303,7 @@ public final class BenchmarkResult {
             return this;
         }
 
-        /**
-         * Builds the BenchmarkResult instance.
-         * 
-         * @return immutable BenchmarkResult
-         * @throws IllegalStateException if required fields are not set
-         */
+        // Builds the immutable result
         public BenchmarkResult build() {
             if (vectorCount <= 0) {
                 throw new IllegalStateException("vectorCount must be positive");

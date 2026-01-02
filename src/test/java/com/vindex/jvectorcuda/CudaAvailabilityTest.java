@@ -6,11 +6,7 @@ import jcuda.runtime.cudaDeviceProp;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Tests CUDA availability and GPU detection.
- *
- * @author JVectorCUDA Team
- */
+// Tests CUDA availability and GPU detection
 class CudaAvailabilityTest {
 
     @Test

@@ -3,12 +3,7 @@ package com.vindex.jvectorcuda;
 import jcuda.runtime.JCuda;
 import jcuda.runtime.cudaDeviceProp;
 
-/**
- * Detects CUDA availability and validates GPU capabilities.
- *
- * @author JVectorCUDA Team
- * @since 1.0.0
- */
+// Detects CUDA availability and validates GPU capabilities.
 public final class CudaDetector {
 
     private static final int MIN_COMPUTE_MAJOR = 6; // GTX 1060+
@@ -20,12 +15,7 @@ public final class CudaDetector {
         // Utility class
     }
 
-    /**
-     * Checks if CUDA is available and meets minimum requirements.
-     * Results are cached after first call.
-     *
-     * @return true if CUDA is available and compatible
-     */
+    // Checks if CUDA is available and meets minimum requirements (cached)
     public static synchronized boolean isAvailable() {
         if (cudaAvailable != null) {
             return cudaAvailable;
@@ -66,11 +56,7 @@ public final class CudaDetector {
         }
     }
 
-    /**
-     * Gets GPU information for debugging.
-     *
-     * @return GPU info string or error message
-     */
+    // Returns GPU info string for debugging
     public static String getGpuInfo() {
         if (!isAvailable()) {
             return "CUDA not available";

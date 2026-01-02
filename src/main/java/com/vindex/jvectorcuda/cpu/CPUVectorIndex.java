@@ -10,22 +10,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/**
- * CPU-based vector index using brute-force search.
- * 
- * <p>This serves as the fallback when GPU is not available or not beneficial.
- * For small datasets or single queries, CPU is often faster due to no memory transfer overhead.
- * 
- * <p><b>Thread Safety:</b> This class is NOT thread-safe. External synchronization
- * is required if instances are shared across threads. For concurrent workloads,
- * consider creating separate instances per thread or wrapping with synchronized access.
- * 
- * <p>Future optimization: Integrate JVector's HNSW for approximate nearest neighbor search
- * on larger datasets where O(n) brute-force becomes too slow.
- * 
- * @author JVectorCUDA (AI-assisted, Human-verified)
- * @since 1.0.0
- */
+// CPU-based brute-force vector index. Fallback when GPU unavailable. Not thread-safe.
 public class CPUVectorIndex implements VectorIndex {
 
     private static final Logger logger = LoggerFactory.getLogger(CPUVectorIndex.class);
@@ -34,12 +19,6 @@ public class CPUVectorIndex implements VectorIndex {
     private final List<float[]> vectors;
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
-    /**
-     * Creates a new CPU vector index with specified dimensions.
-     * 
-     * @param dimensions number of dimensions per vector
-     * @throws IllegalArgumentException if dimensions <= 0
-     */
     public CPUVectorIndex(int dimensions) {
         if (dimensions <= 0) {
             throw new IllegalArgumentException("Dimensions must be positive, got: " + dimensions);
@@ -143,13 +122,7 @@ public class CPUVectorIndex implements VectorIndex {
         }
     }
 
-    /**
-     * Validates that vector values are finite (no NaN or Infinity).
-     * 
-     * @param vector the vector to validate
-     * @param index the vector index for error messages
-     * @throws IllegalArgumentException if vector contains NaN or Infinity
-     */
+    // Validates that vector values are finite
     private void validateVectorValues(float[] vector, int index) {
         for (int i = 0; i < vector.length; i++) {
             if (!Float.isFinite(vector[i])) {
@@ -160,9 +133,7 @@ public class CPUVectorIndex implements VectorIndex {
         }
     }
 
-    /**
-     * Computes Euclidean distance between two vectors.
-     */
+    // Euclidean distance between two vectors
     private float euclideanDistance(float[] a, float[] b) {
         float sum = 0.0f;
         for (int i = 0; i < dimensions; i++) {
@@ -172,15 +143,11 @@ public class CPUVectorIndex implements VectorIndex {
         return (float) Math.sqrt(sum);
     }
 
-    /**
-     * Find indices of k smallest distances using a max-heap.
-     * Time complexity: O(n log k) which is optimal for small k.
-     */
+    // Find k smallest distances using max-heap, O(n log k)
     private int[] findTopK(float[] distances, int k) {
         int n = distances.length;
         
-        // Use a max-heap of size k to track smallest distances
-        // Each entry is [index, distance] - we use distance for comparison
+        // Max-heap of size k to track smallest distances
         java.util.PriorityQueue<int[]> maxHeap = new java.util.PriorityQueue<>(
             k, (a, b) -> Float.compare(distances[b[0]], distances[a[0]])
         );
@@ -194,7 +161,7 @@ public class CPUVectorIndex implements VectorIndex {
             }
         }
         
-        // Extract indices in order (smallest first)
+        // Extract indices sorted by distance
         int[] result = new int[k];
         for (int i = k - 1; i >= 0; i--) {
             result[i] = maxHeap.poll()[0];
