@@ -88,3 +88,36 @@ jacocoTestReport {
 tasks.named('test') {
     finalizedBy jacocoTestReport
 }
+
+// Javadoc generation with proper configuration
+javadoc {
+    title = "JVectorCUDA API Documentation"
+    options {
+        author = true
+        version = true
+        links 'https://docs.oracle.com/en/java/javase/17/docs/api/'
+        // Suppress warnings for missing @param/@return on some methods
+        addStringOption('Xdoclint:none', '-quiet')
+        // Use UTF-8 encoding
+        encoding = 'UTF-8'
+        charSet = 'UTF-8'
+        // Add header
+        header = '<b>JVectorCUDA</b>'
+    }
+    // Exclude internal/benchmark classes from public Javadoc
+    exclude '**/benchmark/**'
+    exclude '**/benchmarks/**'
+}
+
+// Generate Javadoc JAR for publishing
+tasks.register('javadocJar', Jar) {
+    dependsOn javadoc
+    archiveClassifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+// Generate sources JAR for publishing
+tasks.register('sourcesJar', Jar) {
+    archiveClassifier = 'sources'
+    from sourceSets.main.allSource
+}

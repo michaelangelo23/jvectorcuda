@@ -37,10 +37,45 @@ This project was originally prototyped during the creation of "JavaLlama".
 
 ## Requirements
 
-- Java 17-25 (tested with OpenJDK Temurin)
-- Gradle 9.0+
-- NVIDIA GPU with CUDA Compute 6.1+ (GTX 1060 or newer)
-- CUDA Toolkit 11.8+
+- **Java:** 17-25 (tested with OpenJDK Temurin)
+- **Gradle:** 9.0+
+- **CUDA Driver:** 11.8 or newer (NOT the full CUDA Toolkit)
+- **GPU:** Compute Capability 6.1+ (GTX 1060 / Tesla P4 or newer)
+- **JCuda:** 12.0.0 (included via setup script)
+
+### CUDA Driver vs Toolkit
+
+**You only need the NVIDIA driver installed, not the full CUDA Toolkit.**
+
+| What You Need | What It Is | How to Get It |
+|---------------|------------|---------------|
+| NVIDIA Driver 11.8+ | GPU driver with CUDA runtime | [nvidia.com/drivers](https://www.nvidia.com/drivers) |
+| CUDA Toolkit (optional) | Development tools (nvcc, etc.) | Only needed if compiling custom kernels |
+
+Check your driver version:
+```bash
+nvidia-smi   # Shows "CUDA Version: X.Y" in top right
+```
+
+### GPU Compatibility Matrix
+
+JVectorCUDA uses PTX (Portable Intermediate Representation) which is **forward-compatible**:
+
+| GPU Generation | Compute Capability | Examples | Supported |
+|----------------|-------------------|----------|-----------|
+| Pascal | 6.1 | GTX 1060, 1070, 1080 | Yes |
+| Volta | 7.0 | Tesla V100 | Yes |
+| Turing | 7.5 | RTX 2080, Tesla T4 | Yes |
+| Ampere | 8.0 / 8.6 | A100, RTX 3090 | Yes |
+| Ada Lovelace | 8.9 | RTX 4090 | Yes |
+| Hopper | 9.0 | H100 | Yes |
+| Maxwell | 5.x | GTX 980 | **No** |
+| Kepler | 3.x | GTX 780 | **No** |
+
+**PTX Forward Compatibility:**
+- PTX compiled with CUDA 11.8 works on drivers 11.8, 12.0, 12.3, and future versions
+- The driver JIT-compiles PTX to native GPU code at runtime
+- New GPUs automatically work without library updates
 
 ## Quick Start
 
@@ -64,9 +99,16 @@ chmod +x scripts/setup-jcuda.sh
 
 This downloads JCuda 12.0.0 JARs to the `libs/` directory.
 
-### 2. Install CUDA Toolkit
+### 2. Install NVIDIA Driver (if needed)
 
-Download [CUDA Toolkit 11.8](https://developer.nvidia.com/cuda-11-8-0-download-archive) (recommended for GTX 10xx/20xx/30xx compatibility).
+Check your current driver:
+```bash
+nvidia-smi   # Look for "CUDA Version: X.Y" - must be 11.8 or higher
+```
+
+If below 11.8, update from [nvidia.com/drivers](https://www.nvidia.com/drivers).
+
+> **Note:** You do NOT need the full CUDA Toolkit. The driver alone is sufficient.
 
 ### 3. Build and Test
 

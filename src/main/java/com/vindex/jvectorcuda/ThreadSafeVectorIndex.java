@@ -6,36 +6,58 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
- * Thread-safe wrapper around any VectorIndex implementation.
- * 
- * Uses a ReadWriteLock to allow concurrent reads (search operations)
+ * Thread-safe wrapper around any {@link VectorIndex} implementation.
+ *
+ * <p>Uses {@link ReadWriteLock} to allow concurrent reads (search operations)
  * while ensuring exclusive access for writes (add operations).
- * 
- * <p>Usage example:</p>
+ *
+ * <h2>Usage Example</h2>
  * <pre>{@code
- * VectorIndex baseIndex = VectorIndexFactory.auto(384);
- * try (VectorIndex threadSafeIndex = new ThreadSafeVectorIndex(baseIndex)) {
+ * // Create thread-safe index using factory
+ * try (VectorIndex index = VectorIndexFactory.autoThreadSafe(384)) {
  *     // Safe to use from multiple threads
- *     CompletableFuture.allOf(
- *         CompletableFuture.runAsync(() -> threadSafeIndex.add(vectors1)),
- *         CompletableFuture.runAsync(() -> threadSafeIndex.search(query, 10))
- *     ).join();
+ *     ExecutorService executor = Executors.newFixedThreadPool(4);
+ *     
+ *     // Concurrent searches work efficiently
+ *     List<Future<SearchResult>> futures = new ArrayList<>();
+ *     for (int i = 0; i < 100; i++) {
+ *         futures.add(executor.submit(() -> index.search(query, 10)));
+ *     }
  * }
+ *
+ * // Or wrap an existing index manually
+ * VectorIndex gpuIndex = VectorIndexFactory.gpu(768);
+ * VectorIndex threadSafe = new ThreadSafeVectorIndex(gpuIndex);
  * }</pre>
- * 
- * <p><b>Performance Characteristics:</b></p>
+ *
+ * <h2>Performance Characteristics</h2>
  * <ul>
- *   <li>Multiple threads can search concurrently (read lock)</li>
- *   <li>Add operations block all searches (write lock)</li>
+ *   <li>Multiple threads can search concurrently (read lock - shared)</li>
+ *   <li>Add operations block all searches (write lock - exclusive)</li>
  *   <li>Minimal overhead for single-threaded use (~10ns lock acquisition)</li>
+ *   <li>GPU index: searches serialized through CUDA anyway, wrapper adds coordination</li>
+ *   <li>CPU index: actual concurrent search execution</li>
  * </ul>
- * 
- * <p><b>Thread Safety Guarantees:</b></p>
+ *
+ * <h2>Thread Safety Guarantees</h2>
  * <ul>
  *   <li>All operations are atomic and properly ordered</li>
  *   <li>No data races or lost updates</li>
- *   <li>Changes from add() visible to all subsequent search() calls</li>
+ *   <li>Changes from {@link #add(float[][])} visible to all subsequent {@link #search} calls</li>
+ *   <li>Happens-before relationship between write unlock and subsequent read locks</li>
  * </ul>
+ *
+ * <h2>Limitations</h2>
+ * <ul>
+ *   <li>Does not provide transactional semantics (no rollback)</li>
+ *   <li>No deadlock detection (use timeout variants if needed)</li>
+ *   <li>GPU operations still serialized through CUDA driver</li>
+ * </ul>
+ *
+ * @see VectorIndex
+ * @see VectorIndexFactory#autoThreadSafe(int)
+ * @see ReadWriteLock
+ * @since 1.0.0
  */
 public class ThreadSafeVectorIndex implements VectorIndex {
     

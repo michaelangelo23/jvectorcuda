@@ -26,6 +26,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - "When to Use JVectorCUDA" section in README
 - Prominent CUDA requirement notice in README
 - `CHANGELOG.md` for version tracking
+- **Comprehensive Javadoc documentation** for all public APIs
+- Javadoc configuration in Gradle with `javadoc`, `javadocJar`, and `sourcesJar` tasks
+- `indices()` and `distances()` alias methods in `SearchResult` for cleaner API
+- **CUDA driver version validation** - checks for minimum 11.8 at runtime
+- `CudaDetector.getDriverVersion()` - returns current CUDA driver version
+- `CudaDetector.getMinDriverVersion()` - returns minimum required version (11.8)
+- `CudaDetector.getMinComputeCapability()` - returns minimum compute capability (6.1)
+- `CudaDetector.getCompatibilityReport()` - comprehensive compatibility diagnostics
+- GPU compatibility matrix in README (Pascal through Ada Lovelace)
+- PTX forward-compatibility documentation (11.8 PTX works on 12.x+ drivers)
+- Clarified CUDA Driver vs Toolkit requirements in README
 
 ### Changed
 - `add(null)` now throws `IllegalArgumentException` instead of silently returning (breaking change)
