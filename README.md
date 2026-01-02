@@ -57,7 +57,7 @@ A Java library for CUDA-accelerated vector similarity search.
 
 ```mermaid
 flowchart TB
-    App["🖥️ Your Application"]
+    App["Your Application"]
     
     subgraph API["JVectorCUDA API"]
         direction LR
@@ -75,8 +75,8 @@ flowchart TB
     
     subgraph CUDAStack["CUDA Stack"]
         direction TB
-        Kernels["📄 CUDA Kernels<br/>(PTX Files)"]
-        NVGPU["🎮 NVIDIA GPU<br/>(Compute 6.1+)"]
+        Kernels["CUDA Kernels<br/>(PTX Files)"]
+        NVGPU["NVIDIA GPU<br/>(Compute 6.1+)"]
     end
     
     App --> API
@@ -88,11 +88,18 @@ flowchart TB
     
     Kernels --> NVGPU
     
-    style App fill:#e1f5ff
-    style API fill:#fff3cd
-    style Implementations fill:#d4edda
-    style CUDAStack fill:#f8d7da
-    style Hybrid fill:#d1ecf1,stroke:#0c5460,stroke-width:3px
+    style App fill:#e1f5ff,color:#000
+    style API fill:#fff3cd,color:#000
+    style Implementations fill:#d4edda,color:#000
+    style CUDAStack fill:#f8d7da,color:#000
+    style Hybrid fill:#d1ecf1,stroke:#0c5460,stroke-width:3px,color:#000
+    style VectorIndex fill:#1a1a2e,color:#fff
+    style SearchResult fill:#1a1a2e,color:#fff
+    style Factory fill:#1a1a2e,color:#fff
+    style CPU fill:#155724,color:#fff
+    style GPU fill:#721c24,color:#fff
+    style Kernels fill:#721c24,color:#fff
+    style NVGPU fill:#721c24,color:#fff
 ```
 
 ### Routing Decision Flow
@@ -103,13 +110,13 @@ flowchart LR
     
     Start --> IndexType{Index Type?}
     
-    IndexType -->|Hybrid ⭐| Smart{Batch Size?}
+    IndexType -->|Hybrid| Smart{Batch Size?}
     IndexType -->|Auto| GPUCheck{GPU Available?}
     IndexType -->|CPU| CPUPath[CPU: HNSW<br/>~89ms/query]
     IndexType -->|GPU| GPUPath[GPU: CUDA<br/>~5ms/query<br/>+transfer cost]
     
     Smart -->|Single| CPUPath
-    Smart -->|≥10 queries| GPUPath
+    Smart -->|10+ queries| GPUPath
     
     GPUCheck -->|Yes| GPUPath
     GPUCheck -->|No| CPUPath
@@ -117,10 +124,13 @@ flowchart LR
     CPUPath --> Result([SearchResult])
     GPUPath --> Result
     
-    style Smart fill:#d1ecf1,stroke:#0c5460,stroke-width:2px
-    style CPUPath fill:#d4edda
-    style GPUPath fill:#f8d7da
-    style Result fill:#fff3cd
+    style Start fill:#e1f5ff,color:#000
+    style IndexType fill:#fff3cd,color:#000
+    style Smart fill:#d1ecf1,stroke:#0c5460,stroke-width:2px,color:#000
+    style GPUCheck fill:#fff3cd,color:#000
+    style CPUPath fill:#155724,color:#fff
+    style GPUPath fill:#721c24,color:#fff
+    style Result fill:#fff3cd,color:#000
 ```
 
 **Key Points:**
@@ -343,6 +353,20 @@ Contributions are welcome! Whether it's:
 - 🔧 Submitting pull requests
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+---
+
+## Roadmap
+
+Future features planned for upcoming releases:
+
+- [ ] **Metrics API** - Runtime monitoring (query latency, throughput, GPU memory)
+- [ ] **Prometheus/Grafana integration** - Export metrics for observability dashboards
+- [ ] **cuVS integration** - NVIDIA's optimized vector search for 10x+ speedups
+- [ ] **Persistence** - Save/load indexes to disk
+- [ ] **Filtering** - Metadata-based vector filtering
+
+Have a feature request? [Open an issue](https://github.com/michaelangelo23/jvectorcuda/issues/new)!
 
 ---
 
