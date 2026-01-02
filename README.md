@@ -2,7 +2,11 @@
   <img src="https://img.shields.io/badge/JVectorCUDA-CUDA%20Vector%20Search-76B900?style=for-the-badge&logo=nvidia&logoColor=white" alt="JVectorCUDA"/>
 </p>
 
-# JVectorCUDA
+#  JVectorCUDA
+
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.michaelangelo23/jvectorcuda.svg)](https://central.sonatype.com/artifact/io.github.michaelangelo23/jvectorcuda)
+
+**GPU-accelerated vector similarity search for Java** - Now available on Maven Central! 🎉
 
 A Java library for CUDA-accelerated vector similarity search.
 
@@ -21,7 +25,8 @@ A Java library for CUDA-accelerated vector similarity search.
 - [How Does It Work?](#how-does-it-work)
 - [Requirements](#requirements)
 - [Installation](#installation)
-  - [Using JitPack](#using-jitpack)
+  - [Maven Central](#maven-central-recommended)
+  - [Using JitPack](#using-jitpack-alternative)
   - [Building from Source](#building-from-source)
 - [Usage](#usage)
   - [Quick Start](#quick-start)
@@ -167,7 +172,34 @@ flowchart LR
 
 ## Installation
 
-### Using JitPack
+### Maven Central (Recommended)
+
+**Gradle:**
+```gradle
+dependencies {
+    implementation 'io.github.michaelangelo23:jvectorcuda:1.0.0'
+}
+```
+
+**Maven:**
+```xml
+<dependency>
+    <groupId>io.github.michaelangelo23</groupId>
+    <artifactId>jvectorcuda</artifactId>
+    <version>1.0.0</version>
+</dependency>
+```
+
+> **Note:** JCuda natives are required. After adding the dependency, run the setup script:
+> ```bash
+> # Windows
+> .\scripts\setup-jcuda.ps1
+> 
+> # Linux/macOS
+> ./scripts/setup-jcuda.sh
+> ```
+
+### Using JitPack (Alternative)
 
 [![](https://jitpack.io/v/michaelangelo23/jvectorcuda.svg)](https://jitpack.io/#michaelangelo23/jvectorcuda)
 
