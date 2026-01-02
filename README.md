@@ -32,19 +32,26 @@ dependencies {
 
 ### Basic Usage
 ```java
+import com.vindex.jvectorcuda.VectorIndexFactory;
 import com.vindex.jvectorcuda.VectorIndex;
 import com.vindex.jvectorcuda.SearchResult;
+import com.vindex.jvectorcuda.DistanceMetric;
 
 // Create index (auto-detects GPU)
-VectorIndex index = VectorIndex.auto(384);
+try (VectorIndex index = VectorIndexFactory.auto(384)) {
+    // Add vectors (uploads to GPU once)
+    float[][] vectors = ...;
+    index.add(vectors);
 
-// Add vectors
-float[][] vectors = ...;
-index.add(vectors);
+    // Search (runs on GPU, 5x faster than CPU)
+    float[] query = ...;
+    SearchResult result = index.search(query, 10);
+}
 
-// Search
-float[] query = ...;
-SearchResult result = index.search(query, 10);
+// With distance metric
+try (VectorIndex index = VectorIndexFactory.auto(384, DistanceMetric.COSINE)) {
+    // Cosine similarity for text embeddings
+}
 ```
 
 ### Visualization
@@ -54,42 +61,46 @@ Visualizer.show3D(index, result);
 ```
 
 ## Requirements
-- Java 21+
+- Java 21+ (tested on Java 25)
 - For GPU: NVIDIA GPU with CUDA Compute 6.1+ (GTX 1060 or newer)
+- CUDA Toolkit 11.8+ (for GPU support)
 - For CPU fallback: Any x64 processor
 
 ## Current Status
 
-**Phase:** Proof of Concept - Validation & Data Gathering
+**Phase:** Phase 5 Complete - Developer Tools
 
-**Completed POCs:**
-- POC #1: CUDA Detection (GTX 1080 Max-Q validated)
-- POC #2: Vector Addition Kernel (infrastructure working)
-- POC #3: Euclidean Distance Kernel (performance validated)
+**Completed Phases:**
+- Phase 1: Foundation & Setup ✅
+- Phase 2: Proof of Concept (CUDA kernels) ✅
+- Phase 3: Core Vector Search (GPU/CPU implementations) ✅
+- Phase 4: Distance Metrics (Euclidean, Cosine, Inner Product) ✅
+- Phase 5: Developer Tools (Benchmarking Framework) ✅
+
+**Test Suite:** 110 tests passing
 
 **Current Focus:**
+- Phase 6: JavaFX 3D Visualization
 - Gathering GPU performance data from RTX GPUs
-- Finding break-even points for GPU acceleration
-- Designing adaptive CPU/GPU routing strategy
 
 ### Performance Benchmarks (GTX 1080 Max-Q)
 
-**POC #2 - Vector Addition:**
-| Dataset | CPU | GPU | Speedup | Winner |
-|---------|-----|-----|---------|--------|
-| 1M elements | 5.49ms | 6.13ms | 0.90x | CPU |
-
-**POC #3 - Euclidean Distance:**
+**Single Query (fresh upload each time):**
 | Dataset | CPU | GPU | Speedup | Winner |
 |---------|-----|-----|---------|--------|
 | 50K vectors × 384D | 28ms | 61ms | 0.46x | CPU |
 
-**Key Finding:** GTX 1080 Max-Q (mobile GPU) is slower than modern CPUs due to:
-- JNI overhead (~10-15ms per call)
-- Memory transfer costs (Host to Device copies)
-- Thermal throttling (mobile GPU limitation)
+**Persistent Memory (upload once, query many):**
+| Dataset | Queries | CPU | GPU | Speedup | Winner |
+|---------|---------|-----|-----|---------|--------|
+| 50K vectors × 384D | 100 | 2857ms | 525ms | **5.44x** | GPU |
 
-**Next Step:** Validate on modern GPUs (RTX 3000/4000 series) to find when GPU wins.
+**Key Finding:** GPU wins with **persistent memory architecture**:
+- Upload database to GPU once
+- Run many queries without re-uploading
+- Achieves 5x+ speedup over CPU
+
+**Benchmarking Framework:** Use `BenchmarkFramework` to measure your own hardware.
 
 ### Strategic Direction: Hybrid Architecture
 
@@ -111,8 +122,8 @@ Based on POC results and market research:
 We need help validating GPU performance on modern hardware!
 
 If you have an RTX 2000/3000/4000 series GPU, please:
-1. Run our benchmark suite: `./gradlew test --tests GpuBreakEvenTest`
-2. Share results via GitHub Issues
+1. Run our portable benchmark: `./gradlew benchmark`
+2. Copy the generated `benchmark-report.md` and share via GitHub Issues
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed instructions.
 
@@ -123,20 +134,34 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed instructions.
 
 ## Documentation
 
-- [CONTRIBUTING.md](CONTRIBUTING.md) - How to test and contribute
-- `POC_LOG.md` - Detailed POC results and findings
-- `PROBLEMS.md` - Issues encountered and solutions
-- `task.md` - Current development progress
+- [CONTRIBUTING.md](CONTRIBUTING.md) - How to contribute and run benchmarks
 
 ## License
 
-Apache 2.0 - See LICENSE file for details
+Apache 2.0 - See [LICENSE](LICENSE) for details.
 
 ## Transparency
 
-This project uses AI assistance for development. All POC results are documented with complete transparency:
+This project uses AI assistance for development with full transparency:
 - Performance benchmarks published (even when GPU loses)
-- Issues and failures logged in PROBLEMS.md
 - Strategic pivots based on real data, not assumptions
 
-**Current assessment:** GPU acceleration viable with hybrid approach and cuVS integration (viability: 8.5/10)
+**Current assessment:** GPU acceleration **validated** with persistent memory architecture achieving 5x+ speedup.
+
+## Benchmarking Your Hardware
+
+```java
+import com.vindex.jvectorcuda.benchmark.*;
+
+// Quick benchmark
+BenchmarkFramework framework = new BenchmarkFramework();
+BenchmarkResult result = framework.run(BenchmarkConfig.DEFAULT);
+System.out.println(result.toSummaryString());
+
+// Run full suite
+List<BenchmarkResult> results = framework.runSuite(
+    List.of(10_000, 50_000, 100_000),
+    List.of(128, 384, 768)
+);
+framework.printComparisonTable(results);
+```

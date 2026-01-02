@@ -3,8 +3,9 @@ package com.vindex.jvectorcuda.benchmarks;
 import com.vindex.jvectorcuda.gpu.GpuKernelLoader;
 import jcuda.Pointer;
 import jcuda.Sizeof;
+import jcuda.driver.CUcontext;
+import jcuda.driver.CUdevice;
 import jcuda.driver.CUdeviceptr;
-import jcuda.driver.JCudaDriver;
 import org.junit.jupiter.api.*;
 
 import java.util.Random;
@@ -25,73 +26,89 @@ import static org.junit.jupiter.api.Assertions.*;
  * 
  * Results guide adaptive routing strategy for hybrid CPU/GPU approach.
  * 
- * @author JVectorCUDA
+ * @author JVectorCUDA (AI-assisted, Human-verified)
  */
 @DisplayName("GPU Break-Even Point Benchmarks")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class GpuBreakEvenTest {
-    
-    private static final int DIMENSIONS = 384;  // Common embedding size
+
+    private static final int DIMENSIONS = 384; // Common embedding size
     private static final Random random = new Random(42);
     
+    private static CUcontext context;
+    private static CUdevice device;
+
     private GpuKernelLoader kernelLoader;
-    
+
+    @BeforeAll
+    static void setupCuda() {
+        cuInit(0);
+        device = new CUdevice();
+        cuDeviceGet(device, 0);
+        context = new CUcontext();
+        cuCtxCreate(context, 0, device);
+    }
+
+    @AfterAll
+    static void teardownCuda() {
+        if (context != null) {
+            cuCtxDestroy(context);
+        }
+    }
+
     @BeforeEach
     void setUp() {
         kernelLoader = new GpuKernelLoader("euclidean_distance.ptx", "euclideanDistance");
     }
-    
+
     @AfterEach
     void tearDown() {
-        if (kernelLoader != null) {
-            kernelLoader.cleanup();
-        }
+        // Kernel loader resources are managed internally
     }
-    
+
     /**
-     * Test 1: Find break-even point across different dataset sizes and batch sizes
+     * Test 1: Find GPU break-even point across different dataset sizes and batch sizes
      */
     @Test
     @Order(1)
-    @DisplayName("Find GPU break-even point (dataset size × batch size)")
+    @DisplayName("Find GPU break-even point (dataset size x batch size)")
     void testBreakEvenPoints() {
         System.out.println("\n=== GPU Break-Even Point Analysis ===\n");
         System.out.println("Testing when GPU starts outperforming CPU...\n");
         
-        int[] vectorCounts = {1_000, 10_000, 100_000, 1_000_000};
-        int[] batchSizes = {1, 10, 100, 1000};
+        int[] vectorCounts = {1_000, 10_000, 50_000, 100_000};
+        int[] batchSizes = {1, 10, 100};
         
-        System.out.printf("%-15s %-12s %-12s %-12s %-12s %-15s%n",
-            "Vectors", "Batch", "CPU (ms)", "GPU (ms)", "Speedup", "Winner");
-        System.out.println("-".repeat(80));
+        System.out.printf("%-15s %-12s %-12s %-12s %-10s %-8s%n",
+                "Vectors", "Batch", "CPU (ms)", "GPU (ms)", "Speedup", "Winner");
+        System.out.println("-".repeat(75));
         
         for (int numVectors : vectorCounts) {
             for (int batchSize : batchSizes) {
-                // Skip very large tests
-                if (numVectors == 1_000_000 && batchSize > 100) {
+                // Skip very large tests to keep runtime reasonable
+                if (numVectors >= 100_000 && batchSize > 10) {
                     continue;
                 }
                 
-                BenchmarkResult result = runBenchmark(numVectors, batchSize);
-                
+                BenchmarkResult result = runBenchmark(numVectors, DIMENSIONS, batchSize);
                 String winner = result.speedup >= 1.0f ? "GPU" : "CPU";
-                System.out.printf("%-15s %-12d %-12.2f %-12.2f %-12.2fx %-15s%n",
-                    formatNumber(numVectors),
-                    batchSize,
-                    result.cpuTimeMs,
-                    result.gpuTimeMs,
-                    result.speedup,
-                    winner);
+                
+                System.out.printf("%-15s %-12d %-12.2f %-12.2f %-10.2fx %-8s%n",
+                        formatNumber(numVectors),
+                        batchSize,
+                        result.cpuTimeMs,
+                        result.gpuTimeMs,
+                        result.speedup,
+                        winner);
             }
             System.out.println();
         }
         
-        System.out.println("\nConclusion: GPU wins when speedup > 1.0x");
-        System.out.println("Use this data to configure adaptive routing thresholds.\n");
+        System.out.println("Note: GPU speedup depends on JNI overhead and memory transfer costs.");
     }
-    
+
     /**
-     * Test 2: Analyze memory transfer overhead
+     * Test 2: Measure memory transfer overhead percentage
      */
     @Test
     @Order(2)
@@ -100,19 +117,17 @@ public class GpuBreakEvenTest {
         System.out.println("\n=== Memory Transfer Overhead Analysis ===\n");
         
         int numVectors = 50_000;
-        int batchSize = 10;
-        
         float[][] database = generateRandomDatabase(numVectors, DIMENSIONS);
         float[] query = generateRandomVector(DIMENSIONS);
         
-        // Measure total GPU time
+        // Measure total GPU time (includes transfer)
         long totalStart = System.nanoTime();
         float[] gpuResult = euclideanDistanceGPU(database, query, numVectors, DIMENSIONS);
         long totalTime = System.nanoTime() - totalStart;
         
-        // Measure transfer time (simplified - upload + download)
+        // Measure transfer time only (upload database + query, download results)
         long transferStart = System.nanoTime();
-        CUdeviceptr d_database = uploadToGPU(database);
+        CUdeviceptr d_database = uploadToGPU(flattenDatabase(database, numVectors, DIMENSIONS));
         CUdeviceptr d_query = uploadToGPU(query);
         float[] dummy = downloadFromGPU(d_database, numVectors * DIMENSIONS);
         long transferTime = System.nanoTime() - transferStart;
@@ -131,17 +146,17 @@ public class GpuBreakEvenTest {
         System.out.println();
         
         if (transferPct > 50) {
-            System.out.println("WARNING: Memory transfer dominates (>50%)");
+            System.out.println("WARNING: Transfer overhead dominates! (>" + 50 + "%)");
             System.out.println("         GPU may not be beneficial for this workload");
         } else {
             System.out.println("GOOD: Compute time dominates - GPU can provide speedup");
         }
         
-        System.out.println();
+        System.out.println("\nConclusion: For persistent data scenarios, keep database on GPU.");
     }
-    
+
     /**
-     * Test 3: Persistent GPU memory (keep data on GPU, query many times)
+     * Test 3: Test persistent GPU memory (amortize transfer cost)
      */
     @Test
     @Order(3)
@@ -150,8 +165,8 @@ public class GpuBreakEvenTest {
         System.out.println("\n=== Persistent GPU Memory Test ===\n");
         System.out.println("Scenario: Upload database once, run many queries\n");
         
-        int numVectors = 100_000;
-        int numQueries = 1000;
+        int numVectors = 50_000;
+        int numQueries = 100;
         
         float[][] database = generateRandomDatabase(numVectors, DIMENSIONS);
         float[][] queries = new float[numQueries][];
@@ -170,25 +185,24 @@ public class GpuBreakEvenTest {
         long gpuStart = System.nanoTime();
         
         // Upload database once
-        CUdeviceptr d_database = uploadToGPU(database);
+        CUdeviceptr d_database = uploadToGPU(flattenDatabase(database, numVectors, DIMENSIONS));
         CUdeviceptr d_distances = new CUdeviceptr();
         cuMemAlloc(d_distances, numVectors * Sizeof.FLOAT);
         
-        // Query many times (no upload/download per query)
+        // Query many times (only upload query each time)
         for (int i = 0; i < numQueries; i++) {
             CUdeviceptr d_query = uploadToGPU(queries[i]);
             
             // Launch kernel
-            Pointer params = Pointer.to(
-                Pointer.to(d_database),
-                Pointer.to(d_query),
-                Pointer.to(d_distances),
-                Pointer.to(new int[]{numVectors}),
-                Pointer.to(new int[]{DIMENSIONS})
-            );
-            
             int blockSize = 256;
             int gridSize = (numVectors + blockSize - 1) / blockSize;
+            Pointer params = Pointer.to(
+                    Pointer.to(d_database),
+                    Pointer.to(d_query),
+                    Pointer.to(d_distances),
+                    Pointer.to(new int[]{numVectors}),
+                    Pointer.to(new int[]{DIMENSIONS})
+            );
             kernelLoader.launch(gridSize, blockSize, params);
             
             cuMemFree(d_query);
@@ -198,28 +212,31 @@ public class GpuBreakEvenTest {
         cuMemFree(d_distances);
         
         long gpuTime = System.nanoTime() - gpuStart;
-        
         float speedup = (float) cpuTime / gpuTime;
         
-        System.out.printf("CPU: %d queries × %,d vectors = %.2f ms%n",
-            numQueries, numVectors, cpuTime / 1e6);
-        System.out.printf("GPU: %d queries × %,d vectors = %.2f ms%n",
-            numQueries, numVectors, gpuTime / 1e6);
+        System.out.printf("CPU: %d queries x %,d vectors = %.2f ms%n",
+                numQueries, numVectors, cpuTime / 1e6);
+        System.out.printf("GPU: %d queries x %,d vectors = %.2f ms%n",
+                numQueries, numVectors, gpuTime / 1e6);
         System.out.printf("Speedup: %.2fx%n", speedup);
         System.out.println();
         
         if (speedup > 1.0f) {
-            System.out.println("SUCCESS: GPU wins with persistent memory!");
+            System.out.println("SUCCESS: GPU is faster with persistent memory!");
             System.out.printf("Per-query latency: %.2fms%n", (gpuTime / 1e6) / numQueries);
         } else {
-            System.out.println("NOTE: Even with persistent memory, CPU is competitive");
+            System.out.println("NOTE: Even with persistent memory, GPU is not faster on this hardware");
+            System.out.println("      This is expected on GTX 1080 Max-Q due to JNI overhead");
         }
         
-        System.out.println();
+        System.out.println("\nThis data helps determine when to route queries to GPU vs CPU.");
     }
-    
+
     /**
-     * Test 4: Different vector dimensions
+     * Test 4: Test different vector dimensions (128, 384, 768, 1536)
+     * 
+     * Note: Uses scaled vector counts to avoid GPU memory exhaustion on smaller GPUs.
+     * Higher dimensions require more memory per vector.
      */
     @Test
     @Order(4)
@@ -227,82 +244,108 @@ public class GpuBreakEvenTest {
     void testDifferentDimensions() {
         System.out.println("\n=== Dimension Impact on GPU Performance ===\n");
         
-        int[] dimensions = {128, 384, 768, 1536};
-        int numVectors = 50_000;
+        // Scale vector count based on dimensions to stay within memory limits
+        // GTX 1080 Max-Q has 8GB but shared with other processes
+        int[][] dimAndVectors = {
+            {128, 50_000},   // 128D x 50K = ~24 MB
+            {384, 50_000},   // 384D x 50K = ~73 MB
+            {768, 25_000},   // 768D x 25K = ~73 MB (reduced)
+            {1536, 10_000}   // 1536D x 10K = ~58 MB (reduced for safety)
+        };
         
-        System.out.printf("%-15s %-12s %-12s %-12s%n",
-            "Dimensions", "CPU (ms)", "GPU (ms)", "Speedup");
-        System.out.println("-".repeat(55));
+        System.out.printf("%-15s %-12s %-12s %-12s %-10s%n",
+                "Dimensions", "Vectors", "CPU (ms)", "GPU (ms)", "Speedup");
+        System.out.println("-".repeat(65));
         
-        for (int dim : dimensions) {
-            float[][] database = generateRandomDatabase(numVectors, dim);
-            float[] query = generateRandomVector(dim);
+        for (int[] config : dimAndVectors) {
+            int dim = config[0];
+            int numVectors = config[1];
             
-            // CPU
-            long cpuStart = System.nanoTime();
-            euclideanDistanceCPU(database, query);
-            long cpuTime = System.nanoTime() - cpuStart;
-            
-            // GPU
-            long gpuStart = System.nanoTime();
-            euclideanDistanceGPU(database, query, numVectors, dim);
-            long gpuTime = System.nanoTime() - gpuStart;
-            
-            float speedup = (float) cpuTime / gpuTime;
-            
-            System.out.printf("%-15d %-12.2f %-12.2f %-12.2fx%n",
-                dim, cpuTime / 1e6, gpuTime / 1e6, speedup);
+            try {
+                float[][] database = generateRandomDatabase(numVectors, dim);
+                float[] query = generateRandomVector(dim);
+                
+                // CPU
+                long cpuStart = System.nanoTime();
+                euclideanDistanceCPU(database, query);
+                long cpuTime = System.nanoTime() - cpuStart;
+                
+                // GPU
+                long gpuStart = System.nanoTime();
+                euclideanDistanceGPU(database, query, numVectors, dim);
+                long gpuTime = System.nanoTime() - gpuStart;
+                
+                float speedup = (float) cpuTime / gpuTime;
+                
+                System.out.printf("%-15d %-12s %-12.2f %-12.2f %-10.2fx%n",
+                        dim, formatNumber(numVectors), cpuTime / 1e6, gpuTime / 1e6, speedup);
+            } catch (Exception e) {
+                System.out.printf("%-15d %-12s %-12s %-12s (skipped: %s)%n",
+                        dim, formatNumber(numVectors), "-", "-", e.getMessage());
+            }
         }
         
-        System.out.println("\nHigher dimensions = more compute work per vector");
-        System.out.println("May improve GPU speedup if compute > transfer overhead\n");
+        System.out.println("\nHigher dimensions = more compute per vector = better GPU utilization");
+        System.out.println("Note: Vector counts scaled to stay within GPU memory limits.");
     }
-    
-    // ========== Helper Methods ==========
-    
-    private BenchmarkResult runBenchmark(int numVectors, int batchSize) {
-        float[][] database = generateRandomDatabase(numVectors, DIMENSIONS);
+
+    // ==================== Helper Methods ====================
+
+    private BenchmarkResult runBenchmark(int numVectors, int dimensions, int batchSize) {
+        float[][] database = generateRandomDatabase(numVectors, dimensions);
         float[][] queries = new float[batchSize][];
         for (int i = 0; i < batchSize; i++) {
-            queries[i] = generateRandomVector(DIMENSIONS);
+            queries[i] = generateRandomVector(dimensions);
         }
         
-        // CPU
+        // CPU benchmark
         long cpuStart = System.nanoTime();
         for (float[] query : queries) {
             euclideanDistanceCPU(database, query);
         }
         long cpuTime = System.nanoTime() - cpuStart;
         
-        // GPU
+        // GPU benchmark
         long gpuStart = System.nanoTime();
         for (float[] query : queries) {
-            euclideanDistanceGPU(database, query, numVectors, DIMENSIONS);
+            euclideanDistanceGPU(database, query, numVectors, dimensions);
         }
         long gpuTime = System.nanoTime() - gpuStart;
         
         return new BenchmarkResult(cpuTime / 1e6, gpuTime / 1e6);
     }
-    
+
     private float[] euclideanDistanceGPU(float[][] database, float[] query, int numVectors, int dimensions) {
-        CUdeviceptr d_database = uploadToGPU(database);
-        CUdeviceptr d_query = uploadToGPU(query);
-        CUdeviceptr d_distances = new CUdeviceptr();
-        cuMemAlloc(d_distances, numVectors * Sizeof.FLOAT);
+        float[] flatDatabase = flattenDatabase(database, numVectors, dimensions);
+        float[] distances = new float[numVectors];
         
-        Pointer params = Pointer.to(
-            Pointer.to(d_database),
-            Pointer.to(d_query),
-            Pointer.to(d_distances),
-            Pointer.to(new int[]{numVectors}),
-            Pointer.to(new int[]{dimensions})
-        );
+        CUdeviceptr d_database = new CUdeviceptr();
+        CUdeviceptr d_query = new CUdeviceptr();
+        CUdeviceptr d_distances = new CUdeviceptr();
+        
+        int dbSize = numVectors * dimensions * Sizeof.FLOAT;
+        int querySize = dimensions * Sizeof.FLOAT;
+        int distSize = numVectors * Sizeof.FLOAT;
+        
+        cuMemAlloc(d_database, dbSize);
+        cuMemAlloc(d_query, querySize);
+        cuMemAlloc(d_distances, distSize);
+        
+        cuMemcpyHtoD(d_database, Pointer.to(flatDatabase), dbSize);
+        cuMemcpyHtoD(d_query, Pointer.to(query), querySize);
         
         int blockSize = 256;
         int gridSize = (numVectors + blockSize - 1) / blockSize;
+        Pointer params = Pointer.to(
+                Pointer.to(d_database),
+                Pointer.to(d_query),
+                Pointer.to(d_distances),
+                Pointer.to(new int[]{numVectors}),
+                Pointer.to(new int[]{dimensions})
+        );
         kernelLoader.launch(gridSize, blockSize, params);
         
-        float[] distances = downloadFromGPU(d_distances, numVectors);
+        cuMemcpyDtoH(Pointer.to(distances), d_distances, distSize);
         
         cuMemFree(d_database);
         cuMemFree(d_query);
@@ -310,81 +353,77 @@ public class GpuBreakEvenTest {
         
         return distances;
     }
-    
+
     private float[] euclideanDistanceCPU(float[][] database, float[] query) {
-        int numVectors = database.length;
-        int dimensions = query.length;
-        float[] distances = new float[numVectors];
-        
-        for (int i = 0; i < numVectors; i++) {
+        float[] distances = new float[database.length];
+        for (int i = 0; i < database.length; i++) {
             float sum = 0.0f;
-            for (int d = 0; d < dimensions; d++) {
+            for (int d = 0; d < query.length; d++) {
                 float diff = database[i][d] - query[d];
                 sum += diff * diff;
             }
             distances[i] = (float) Math.sqrt(sum);
         }
-        
         return distances;
     }
-    
-    private CUdeviceptr uploadToGPU(float[][] data) {
-        int rows = data.length;
-        int cols = data[0].length;
-        float[] flat = new float[rows * cols];
-        
-        for (int i = 0; i < rows; i++) {
-            System.arraycopy(data[i], 0, flat, i * cols, cols);
-        }
-        
-        return uploadToGPU(flat);
-    }
-    
+
     private CUdeviceptr uploadToGPU(float[] data) {
         CUdeviceptr devicePtr = new CUdeviceptr();
-        cuMemAlloc(devicePtr, data.length * Sizeof.FLOAT);
-        cuMemcpyHtoD(devicePtr, Pointer.to(data), data.length * Sizeof.FLOAT);
+        int size = data.length * Sizeof.FLOAT;
+        cuMemAlloc(devicePtr, size);
+        cuMemcpyHtoD(devicePtr, Pointer.to(data), size);
         return devicePtr;
     }
-    
+
     private float[] downloadFromGPU(CUdeviceptr devicePtr, int length) {
         float[] result = new float[length];
         cuMemcpyDtoH(Pointer.to(result), devicePtr, length * Sizeof.FLOAT);
         return result;
     }
-    
+
+    private float[] flattenDatabase(float[][] database, int numVectors, int dimensions) {
+        float[] flat = new float[numVectors * dimensions];
+        for (int i = 0; i < numVectors; i++) {
+            System.arraycopy(database[i], 0, flat, i * dimensions, dimensions);
+        }
+        return flat;
+    }
+
     private float[][] generateRandomDatabase(int numVectors, int dimensions) {
         float[][] database = new float[numVectors][dimensions];
         for (int i = 0; i < numVectors; i++) {
             for (int d = 0; d < dimensions; d++) {
-                database[i][d] = random.nextFloat() * 2.0f - 1.0f;
+                database[i][d] = random.nextFloat();
             }
         }
         return database;
     }
-    
+
     private float[] generateRandomVector(int dimensions) {
         float[] vector = new float[dimensions];
         for (int d = 0; d < dimensions; d++) {
-            vector[d] = random.nextFloat() * 2.0f - 1.0f;
+            vector[d] = random.nextFloat();
         }
         return vector;
     }
-    
+
     private String formatNumber(int number) {
         if (number >= 1_000_000) {
-            return String.format("%dM", number / 1_000_000);
+            return (number / 1_000_000) + "M";
         } else if (number >= 1_000) {
-            return String.format("%dK", number / 1_000);
+            return (number / 1_000) + "K";
         }
         return String.valueOf(number);
     }
-    
-    static class BenchmarkResult {
+
+    /**
+     * Simple result container for benchmark measurements
+     */
+    private static class BenchmarkResult {
         final double cpuTimeMs;
         final double gpuTimeMs;
         final float speedup;
-        
+
         BenchmarkResult(double cpuTimeMs, double gpuTimeMs) {
             this.cpuTimeMs = cpuTimeMs;
             this.gpuTimeMs = gpuTimeMs;

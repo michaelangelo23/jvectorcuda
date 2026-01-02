@@ -20,8 +20,8 @@ dependencies {
     // JARs downloaded from Maven Central and placed in libs/
     implementation fileTree(dir: 'libs', include: ['jcuda-*.jar', 'jcublas-*.jar', 'jcurand-*.jar'])
     
-    // JVector (CPU fallback) - TODO: Add correct version after CUDA test works
-    // implementation 'io.github.jbellis:jvector-base:5.0.0'
+    // JVector (CPU fallback) - Pure Java vector search
+    implementation 'io.github.jbellis:jvector:3.0.0'
     
     // JavaFX + FXyz3D (visualization) - Disabled for initial testing
     // implementation 'org.openjfx:javafx-controls:21'
@@ -41,6 +41,15 @@ dependencies {
 
 test {
     useJUnitPlatform()
+    
+    // Enable native access for JCuda (required for Java 22+)
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+    
+    // Show test output in console
+    testLogging {
+        events "passed", "skipped", "failed"
+        showStandardStreams = true
+    }
 }
 
 // Ensure resources (PTX files) are included in JAR
@@ -48,4 +57,13 @@ jar {
     from(sourceSets.main.resources) {
         include 'kernels/**/*.ptx'
     }
+}
+
+// Benchmark runner task - produces markdown report for contributors
+tasks.register('benchmark', JavaExec) {
+    description = 'Run GPU benchmark suite and generate report'
+    group = 'verification'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.vindex.jvectorcuda.benchmark.BenchmarkRunner'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
 }

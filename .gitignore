@@ -8,6 +8,8 @@ build/
 *.iml
 *.iws
 .vscode/
+*.swp
+*~
 
 # Java
 *.class
@@ -15,25 +17,31 @@ build/
 *.war
 *.ear
 target/
+!gradle/wrapper/gradle-wrapper.jar
+
+# JCuda native libraries - download locally, don't commit (~150MB)
+libs/
 
 # Logs
 *.log
+logs/
 
 # OS
 .DS_Store
 Thumbs.db
+desktop.ini
 
-# JCuda native libraries (downloaded at runtime)
-# lib/ is excluded but libs/ (our local JARs) is tracked
+# Internal development files
+POC_LOG.md
+PROBLEMS.md
+benchmark-report.md
+TODO.md
+NOTES.md
+*.local.md
 
-# Working files - kept local during development
-# POC_LOG.md
-# PROBLEMS.md
-# fri_jan_02_2026_unique_project_ideas_for_parallel_processing (1).md
-
-# Working documentation - internal planning/development
-# *.md
-!README.md
+# Test outputs
+test-output/
+hs_err_pid*.log
 
 # Compiled CUDA kernels are committed (PTX files in resources)
 # Do NOT ignore: src/main/resources/kernels/*.ptx

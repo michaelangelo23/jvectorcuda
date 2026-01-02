@@ -65,7 +65,7 @@ public class GpuKernelLoader {
      * Loads PTX file from classpath resources.
      * 
      * @param fileName PTX file name
-     * @return PTX file contents as byte array
+     * @return PTX file contents as byte array (null-terminated for CUDA)
      */
     private byte[] loadPTXFromResources(String fileName) {
         String resourcePath = "/kernels/" + fileName;
@@ -81,6 +81,9 @@ public class GpuKernelLoader {
             while ((bytesRead = is.read(buffer)) != -1) {
                 baos.write(buffer, 0, bytesRead);
             }
+            
+            // CUDA requires null-terminated PTX string
+            baos.write(0);
             
             return baos.toByteArray();
             

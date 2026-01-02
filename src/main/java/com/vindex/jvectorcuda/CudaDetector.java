@@ -9,7 +9,7 @@ import jcuda.runtime.cudaDeviceProp;
  * @author JVectorCUDA Team
  * @since 1.0.0
  */
-final class CudaDetector {
+public final class CudaDetector {
 
     private static final int MIN_COMPUTE_MAJOR = 6; // GTX 1060+
     private static final int MIN_COMPUTE_MINOR = 1;
@@ -26,7 +26,7 @@ final class CudaDetector {
      *
      * @return true if CUDA is available and compatible
      */
-    static synchronized boolean isAvailable() {
+    public static synchronized boolean isAvailable() {
         if (cudaAvailable != null) {
             return cudaAvailable;
         }
@@ -71,7 +71,7 @@ final class CudaDetector {
      *
      * @return GPU info string or error message
      */
-    static String getGpuInfo() {
+    public static String getGpuInfo() {
         if (!isAvailable()) {
             return "CUDA not available";
         }
