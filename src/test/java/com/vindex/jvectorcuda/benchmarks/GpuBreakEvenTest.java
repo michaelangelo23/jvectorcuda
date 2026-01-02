@@ -11,7 +11,6 @@ import org.junit.jupiter.api.*;
 import java.util.Random;
 
 import static jcuda.driver.JCudaDriver.*;
-import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * GPU Break-Even Point Benchmark Suite
@@ -122,6 +121,7 @@ public class GpuBreakEvenTest {
         
         // Measure total GPU time (includes transfer)
         long totalStart = System.nanoTime();
+        @SuppressWarnings("unused")
         float[] gpuResult = euclideanDistanceGPU(database, query, numVectors, DIMENSIONS);
         long totalTime = System.nanoTime() - totalStart;
         
@@ -129,6 +129,7 @@ public class GpuBreakEvenTest {
         long transferStart = System.nanoTime();
         CUdeviceptr d_database = uploadToGPU(flattenDatabase(database, numVectors, DIMENSIONS));
         CUdeviceptr d_query = uploadToGPU(query);
+        @SuppressWarnings("unused")
         float[] dummy = downloadFromGPU(d_database, numVectors * DIMENSIONS);
         long transferTime = System.nanoTime() - transferStart;
         cuMemFree(d_database);

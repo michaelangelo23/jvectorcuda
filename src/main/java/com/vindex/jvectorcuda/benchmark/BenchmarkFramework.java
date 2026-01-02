@@ -1,9 +1,6 @@
 package com.vindex.jvectorcuda.benchmark;
 
 import com.vindex.jvectorcuda.CudaDetector;
-import com.vindex.jvectorcuda.SearchResult;
-import com.vindex.jvectorcuda.VectorIndex;
-import com.vindex.jvectorcuda.VectorIndexFactory;
 import com.vindex.jvectorcuda.cpu.CPUVectorIndex;
 import com.vindex.jvectorcuda.gpu.GPUVectorIndex;
 import org.slf4j.Logger;

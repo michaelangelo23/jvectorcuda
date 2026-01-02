@@ -9,8 +9,6 @@ import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -61,7 +59,6 @@ import java.util.concurrent.ConcurrentHashMap;
 public class PerformanceMetricsLogger {
 
     private static final Logger logger = LoggerFactory.getLogger(PerformanceMetricsLogger.class);
-    private static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
 
     // Singleton instance
     private static volatile PerformanceMetricsLogger instance;

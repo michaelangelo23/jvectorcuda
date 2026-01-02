@@ -6,10 +6,7 @@ import jcuda.Sizeof;
 import jcuda.driver.CUcontext;
 import jcuda.driver.CUdevice;
 import jcuda.driver.CUdeviceptr;
-import jcuda.driver.JCudaDriver;
 import org.junit.jupiter.api.*;
-
-import java.util.Arrays;
 import java.util.Random;
 
 import static jcuda.driver.JCudaDriver.*;

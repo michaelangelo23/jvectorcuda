@@ -10,6 +10,13 @@ If you have access to an RTX GPU, running our benchmark suite is the most valuab
 
 ## Running Benchmarks
 
+**Requirements**
+- JDK 21+ ([Eclipse Temurin](https://adoptium.net/) recommended)
+- Gradle 8.0+ (or use included `./gradlew` wrapper)
+- NVIDIA GPU with CUDA Compute 6.1+ (GTX 1060 or newer)
+- CUDA Toolkit 11.8+ ([download](https://developer.nvidia.com/cuda-toolkit))
+- Updated NVIDIA drivers
+
 ```bash
 git clone https://github.com/michaelangelo23/jvectorcuda.git
 cd jvectorcuda

@@ -2,7 +2,6 @@ package com.vindex.jvectorcuda.benchmark;
 
 import com.vindex.jvectorcuda.CudaDetector;
 import com.vindex.jvectorcuda.DistanceMetric;
-import com.vindex.jvectorcuda.SearchResult;
 import com.vindex.jvectorcuda.VectorIndex;
 import com.vindex.jvectorcuda.VectorIndexFactory;
 
@@ -12,8 +11,6 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Random;
 
 /**

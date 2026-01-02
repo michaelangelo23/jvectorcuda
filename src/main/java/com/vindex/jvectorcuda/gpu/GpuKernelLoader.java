@@ -1,7 +1,6 @@
 package com.vindex.jvectorcuda.gpu;
 
 import jcuda.Pointer;
-import jcuda.Sizeof;
 import jcuda.driver.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +24,6 @@ public class GpuKernelLoader {
     
     private CUmodule module;
     private CUfunction function;
-    private final String kernelName;
     
     /**
      * Loads a CUDA kernel from a PTX file in the resources directory.
@@ -35,8 +33,6 @@ public class GpuKernelLoader {
      * @throws RuntimeException if kernel loading fails
      */
     public GpuKernelLoader(String ptxFileName, String kernelName) {
-        this.kernelName = kernelName;
-        
         // Initialize CUDA driver
         cuInit(0);
         
