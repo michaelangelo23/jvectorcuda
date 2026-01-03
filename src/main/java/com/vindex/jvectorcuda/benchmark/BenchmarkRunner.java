@@ -134,7 +134,7 @@ public class BenchmarkRunner {
 
         report.append("### Memory Transfer Analysis\n\n");
         TransferAnalysis transfer = measureTransferOverhead(50_000);
-        report.append(String.format("- Upload time (50K vectors × %dD): %.1f ms\n", DIMENSIONS, transfer.uploadMs));
+        report.append(String.format("- Upload time (50K vectors x %dD): %.1f ms\n", DIMENSIONS, transfer.uploadMs));
         report.append(String.format("- Search time (single query): %.1f ms\n", transfer.searchMs));
         report.append(String.format("- Transfer overhead: %.0f%%\n", transfer.overheadPercent));
         report.append("\n");

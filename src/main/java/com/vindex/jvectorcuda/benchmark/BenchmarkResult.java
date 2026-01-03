@@ -10,16 +10,16 @@ public final class BenchmarkResult {
     private final double gpuTimeMs;
     private final double gpuTransferTimeMs;
     private final double gpuComputeTimeMs;
-    
+
     private final long gpuMemoryUsedBytes;
     private final long cpuMemoryUsedBytes;
-    
+
     private final int vectorCount;
     private final int dimensions;
     private final int queryCount;
     private final int k;
     private final String distanceMetric;
-    
+
     private final Instant timestamp;
     private final String gpuName;
     private final int warmupIterations;
@@ -156,14 +156,14 @@ public final class BenchmarkResult {
         sb.append("=== Benchmark Results ===\n");
         sb.append(String.format("Timestamp: %s%n", timestamp));
         sb.append(String.format("GPU: %s%n", gpuName));
-        sb.append(String.format("Configuration: %,d vectors × %d dimensions%n", vectorCount, dimensions));
-        sb.append(String.format("Queries: %d × k=%d%n", queryCount, k));
+        sb.append(String.format("Configuration: %,d vectors x %d dimensions%n", vectorCount, dimensions));
+        sb.append(String.format("Queries: %d x k=%d%n", queryCount, k));
         sb.append(String.format("Distance Metric: %s%n", distanceMetric));
         sb.append(String.format("Iterations: %d warmup + %d measured%n", warmupIterations, measuredIterations));
         sb.append("\n--- Timing ---\n");
         sb.append(String.format("CPU Time: %.2f ms%n", cpuTimeMs));
-        sb.append(String.format("GPU Time: %.2f ms (Transfer: %.2f ms, Compute: %.2f ms)%n", 
-            gpuTimeMs, gpuTransferTimeMs, gpuComputeTimeMs));
+        sb.append(String.format("GPU Time: %.2f ms (Transfer: %.2f ms, Compute: %.2f ms)%n",
+                gpuTimeMs, gpuTransferTimeMs, gpuComputeTimeMs));
         sb.append(String.format("Speedup: %.2fx (%s)%n", getSpeedup(), isGpuFaster() ? "GPU wins" : "CPU wins"));
         sb.append(String.format("Transfer Overhead: %.1f%%%n", getTransferOverheadPercent()));
         sb.append("\n--- Throughput ---\n");
@@ -177,8 +177,8 @@ public final class BenchmarkResult {
     // Single-line CSV format
     public String toCsvLine() {
         return String.format("%s,%s,%d,%d,%d,%d,%s,%.2f,%.2f,%.2f,%.2f,%.2f,%d",
-            timestamp, gpuName, vectorCount, dimensions, queryCount, k, distanceMetric,
-            cpuTimeMs, gpuTimeMs, gpuTransferTimeMs, gpuComputeTimeMs, getSpeedup(), gpuMemoryUsedBytes);
+                timestamp, gpuName, vectorCount, dimensions, queryCount, k, distanceMetric,
+                cpuTimeMs, gpuTimeMs, gpuTransferTimeMs, gpuComputeTimeMs, getSpeedup(), gpuMemoryUsedBytes);
     }
 
     // CSV header line
@@ -189,18 +189,20 @@ public final class BenchmarkResult {
     @Override
     public String toString() {
         return String.format("BenchmarkResult[vectors=%d, dims=%d, speedup=%.2fx]",
-            vectorCount, dimensions, getSpeedup());
+                vectorCount, dimensions, getSpeedup());
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
         BenchmarkResult that = (BenchmarkResult) o;
         return Double.compare(cpuTimeMs, that.cpuTimeMs) == 0 &&
-               Double.compare(gpuTimeMs, that.gpuTimeMs) == 0 &&
-               vectorCount == that.vectorCount &&
-               dimensions == that.dimensions;
+                Double.compare(gpuTimeMs, that.gpuTimeMs) == 0 &&
+                vectorCount == that.vectorCount &&
+                dimensions == that.dimensions;
     }
 
     @Override
@@ -226,7 +228,8 @@ public final class BenchmarkResult {
         private int warmupIterations = 5;
         private int measuredIterations = 10;
 
-        private Builder() {}
+        private Builder() {
+        }
 
         public Builder cpuTimeMs(double cpuTimeMs) {
             this.cpuTimeMs = cpuTimeMs;

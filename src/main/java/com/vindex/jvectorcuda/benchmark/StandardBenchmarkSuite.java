@@ -81,7 +81,7 @@ public class StandardBenchmarkSuite {
             }
         }
 
-        String name = String.format("Synthetic[%,d×%d]", vectorCount, dimensions);
+        String name = String.format("Synthetic[%,dx%d]", vectorCount, dimensions);
         return new Dataset(name, vectorCount, dimensions, vectors, queries);
     }
 
