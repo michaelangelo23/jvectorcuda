@@ -579,43 +579,58 @@ public class GPUVectorIndex implements VectorIndex {
     }
     
     // Max-heap bubble up (for insertion)
+    // Caches distance values to reduce array access overhead
     private void bubbleUp(int[] heap, int idx, float[] distances) {
+        int currentIdx = heap[idx];
+        float currentDist = distances[currentIdx];
+        
         while (idx > 0) {
             int parent = (idx - 1) / 2;
-            if (distances[heap[idx]] > distances[heap[parent]]) {
-                int tmp = heap[idx];
+            float parentDist = distances[heap[parent]];
+            if (currentDist > parentDist) {
                 heap[idx] = heap[parent];
-                heap[parent] = tmp;
                 idx = parent;
             } else {
                 break;
             }
         }
+        heap[idx] = currentIdx;
     }
     
     // Max-heap bubble down (for extraction/replacement)
+    // Caches distance values to reduce array access overhead
     private void bubbleDown(int[] heap, int idx, int size, float[] distances) {
+        int currentIdx = heap[idx];
+        float currentDist = distances[currentIdx];
+        
         while (true) {
             int left = 2 * idx + 1;
             int right = 2 * idx + 2;
             int largest = idx;
+            float largestDist = currentDist;
             
-            if (left < size && distances[heap[left]] > distances[heap[largest]]) {
-                largest = left;
+            if (left < size) {
+                float leftDist = distances[heap[left]];
+                if (leftDist > largestDist) {
+                    largest = left;
+                    largestDist = leftDist;
+                }
             }
-            if (right < size && distances[heap[right]] > distances[heap[largest]]) {
-                largest = right;
+            if (right < size) {
+                float rightDist = distances[heap[right]];
+                if (rightDist > largestDist) {
+                    largest = right;
+                }
             }
             
             if (largest != idx) {
-                int tmp = heap[idx];
                 heap[idx] = heap[largest];
-                heap[largest] = tmp;
                 idx = largest;
             } else {
                 break;
             }
         }
+        heap[idx] = currentIdx;
     }
 
     // Validate GPU has sufficient memory before allocation

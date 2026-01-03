@@ -273,8 +273,9 @@ public class CPUVectorIndex implements VectorIndex {
         float sum0 = 0.0f, sum1 = 0.0f, sum2 = 0.0f, sum3 = 0.0f;
         
         // Process 4 elements at a time for better instruction-level parallelism
+        // Note: When dimensions < 4, limit is negative and unrolled loop is skipped
         int i = 0;
-        int limit = dimensions - 3;
+        final int limit = dimensions - 3;
         for (; i < limit; i += 4) {
             float diff0 = a[i] - b[i];
             float diff1 = a[i + 1] - b[i + 1];
@@ -286,7 +287,7 @@ public class CPUVectorIndex implements VectorIndex {
             sum3 += diff3 * diff3;
         }
         
-        // Handle remaining elements
+        // Handle remaining elements (and all elements when dimensions < 4)
         float sum = sum0 + sum1 + sum2 + sum3;
         for (; i < dimensions; i++) {
             float diff = a[i] - b[i];
@@ -304,8 +305,9 @@ public class CPUVectorIndex implements VectorIndex {
         float normB0 = 0.0f, normB1 = 0.0f, normB2 = 0.0f, normB3 = 0.0f;
         
         // Process 4 elements at a time
+        // Note: When dimensions < 4, limit is negative and unrolled loop is skipped
         int i = 0;
-        int limit = dimensions - 3;
+        final int limit = dimensions - 3;
         for (; i < limit; i += 4) {
             float a0 = a[i], a1 = a[i + 1], a2 = a[i + 2], a3 = a[i + 3];
             float b0 = b[i], b1 = b[i + 1], b2 = b[i + 2], b3 = b[i + 3];
@@ -331,14 +333,13 @@ public class CPUVectorIndex implements VectorIndex {
         float normA = normA0 + normA1 + normA2 + normA3;
         float normB = normB0 + normB1 + normB2 + normB3;
         
-        // Handle remaining elements
+        // Handle remaining elements (and all elements when dimensions < 4)
         for (; i < dimensions; i++) {
             dotProduct += a[i] * b[i];
             normA += a[i] * a[i];
             normB += b[i] * b[i];
         }
         
-        // Use Math.fma for better numerical accuracy when available
         float denominator = (float) (Math.sqrt(normA) * Math.sqrt(normB));
         if (denominator == 0.0f) {
             return 1.0f; // Maximum distance for zero vectors
@@ -356,8 +357,9 @@ public class CPUVectorIndex implements VectorIndex {
         float sum0 = 0.0f, sum1 = 0.0f, sum2 = 0.0f, sum3 = 0.0f;
         
         // Process 4 elements at a time
+        // Note: When dimensions < 4, limit is negative and unrolled loop is skipped
         int i = 0;
-        int limit = dimensions - 3;
+        final int limit = dimensions - 3;
         for (; i < limit; i += 4) {
             sum0 += a[i] * b[i];
             sum1 += a[i + 1] * b[i + 1];
@@ -365,7 +367,7 @@ public class CPUVectorIndex implements VectorIndex {
             sum3 += a[i + 3] * b[i + 3];
         }
         
-        // Handle remaining elements
+        // Handle remaining elements (and all elements when dimensions < 4)
         float dotProduct = sum0 + sum1 + sum2 + sum3;
         for (; i < dimensions; i++) {
             dotProduct += a[i] * b[i];

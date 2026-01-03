@@ -15,8 +15,9 @@ __global__ void innerProduct(
         float sum0 = 0.0f, sum1 = 0.0f, sum2 = 0.0f, sum3 = 0.0f;
         
         // Process 4 elements at a time
+        // Note: When dimensions < 4, limit is negative and unrolled loop is skipped
         int d = 0;
-        int limit = dimensions - 3;
+        const int limit = dimensions - 3;
         for (; d < limit; d += 4) {
             sum0 += vec[d] * query[d];
             sum1 += vec[d + 1] * query[d + 1];
@@ -24,7 +25,7 @@ __global__ void innerProduct(
             sum3 += vec[d + 3] * query[d + 3];
         }
         
-        // Handle remaining elements
+        // Handle remaining elements (and all elements when dimensions < 4)
         float dotProduct = sum0 + sum1 + sum2 + sum3;
         for (; d < dimensions; d++) {
             dotProduct += vec[d] * query[d];
@@ -58,8 +59,9 @@ __global__ void innerProductShared(
         float sum0 = 0.0f, sum1 = 0.0f, sum2 = 0.0f, sum3 = 0.0f;
         
         // Process 4 elements at a time
+        // Note: When dimensions < 4, limit is negative and unrolled loop is skipped
         int d = 0;
-        int limit = dimensions - 3;
+        const int limit = dimensions - 3;
         for (; d < limit; d += 4) {
             sum0 += vec[d] * sharedQuery[d];
             sum1 += vec[d + 1] * sharedQuery[d + 1];
@@ -67,6 +69,7 @@ __global__ void innerProductShared(
             sum3 += vec[d + 3] * sharedQuery[d + 3];
         }
         
+        // Handle remaining elements (and all elements when dimensions < 4)
         float dotProduct = sum0 + sum1 + sum2 + sum3;
         for (; d < dimensions; d++) {
             dotProduct += vec[d] * sharedQuery[d];

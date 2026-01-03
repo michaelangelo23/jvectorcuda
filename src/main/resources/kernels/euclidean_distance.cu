@@ -15,8 +15,9 @@ __global__ void euclideanDistance(
         float sum0 = 0.0f, sum1 = 0.0f, sum2 = 0.0f, sum3 = 0.0f;
         
         // Process 4 elements at a time for better GPU pipeline utilization
+        // Note: When dimensions < 4, limit is negative and unrolled loop is skipped
         int d = 0;
-        int limit = dimensions - 3;
+        const int limit = dimensions - 3;
         for (; d < limit; d += 4) {
             float diff0 = vec[d] - query[d];
             float diff1 = vec[d + 1] - query[d + 1];
@@ -28,7 +29,7 @@ __global__ void euclideanDistance(
             sum3 += diff3 * diff3;
         }
         
-        // Handle remaining elements
+        // Handle remaining elements (and all elements when dimensions < 4)
         float sum = sum0 + sum1 + sum2 + sum3;
         for (; d < dimensions; d++) {
             float diff = vec[d] - query[d];
@@ -63,8 +64,9 @@ __global__ void euclideanDistanceShared(
         float sum0 = 0.0f, sum1 = 0.0f, sum2 = 0.0f, sum3 = 0.0f;
         
         // Process 4 elements at a time
+        // Note: When dimensions < 4, limit is negative and unrolled loop is skipped
         int d = 0;
-        int limit = dimensions - 3;
+        const int limit = dimensions - 3;
         for (; d < limit; d += 4) {
             float diff0 = vec[d] - sharedQuery[d];
             float diff1 = vec[d + 1] - sharedQuery[d + 1];
@@ -76,6 +78,7 @@ __global__ void euclideanDistanceShared(
             sum3 += diff3 * diff3;
         }
         
+        // Handle remaining elements (and all elements when dimensions < 4)
         float sum = sum0 + sum1 + sum2 + sum3;
         for (; d < dimensions; d++) {
             float diff = vec[d] - sharedQuery[d];

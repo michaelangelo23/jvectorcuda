@@ -17,8 +17,9 @@ __global__ void cosineSimilarity(
         float normB0 = 0.0f, normB1 = 0.0f, normB2 = 0.0f, normB3 = 0.0f;
         
         // Process 4 elements at a time
+        // Note: When dimensions < 4, limit is negative and unrolled loop is skipped
         int d = 0;
-        int limit = dimensions - 3;
+        const int limit = dimensions - 3;
         for (; d < limit; d += 4) {
             float a0 = vec[d], a1 = vec[d + 1], a2 = vec[d + 2], a3 = vec[d + 3];
             float b0 = query[d], b1 = query[d + 1], b2 = query[d + 2], b3 = query[d + 3];
@@ -44,7 +45,7 @@ __global__ void cosineSimilarity(
         float normA = normA0 + normA1 + normA2 + normA3;
         float normB = normB0 + normB1 + normB2 + normB3;
         
-        // Handle remaining elements
+        // Handle remaining elements (and all elements when dimensions < 4)
         for (; d < dimensions; d++) {
             float a = vec[d];
             float b = query[d];
@@ -93,8 +94,9 @@ __global__ void cosineSimilarityShared(
         float normB0 = 0.0f, normB1 = 0.0f, normB2 = 0.0f, normB3 = 0.0f;
         
         // Process 4 elements at a time
+        // Note: When dimensions < 4, limit is negative and unrolled loop is skipped
         int d = 0;
-        int limit = dimensions - 3;
+        const int limit = dimensions - 3;
         for (; d < limit; d += 4) {
             float a0 = vec[d], a1 = vec[d + 1], a2 = vec[d + 2], a3 = vec[d + 3];
             float b0 = sharedQuery[d], b1 = sharedQuery[d + 1], b2 = sharedQuery[d + 2], b3 = sharedQuery[d + 3];
@@ -119,6 +121,7 @@ __global__ void cosineSimilarityShared(
         float normA = normA0 + normA1 + normA2 + normA3;
         float normB = normB0 + normB1 + normB2 + normB3;
         
+        // Handle remaining elements (and all elements when dimensions < 4)
         for (; d < dimensions; d++) {
             float a = vec[d];
             float b = sharedQuery[d];
