@@ -96,6 +96,7 @@ flowchart TB
     style Implementations fill:#d4edda,color:#000
     style CUDAStack fill:#f8d7da,color:#000
     style Hybrid fill:#d1ecf1,stroke:#0c5460,stroke-width:3px,color:#000
+
     style VectorIndex fill:#1a1a2e,color:#fff
     style SearchResult fill:#1a1a2e,color:#fff
     style Factory fill:#1a1a2e,color:#fff
@@ -104,6 +105,26 @@ flowchart TB
     style Kernels fill:#721c24,color:#fff
     style NVGPU fill:#721c24,color:#fff
 ```
+
+### Reliability & Design Principles
+
+JVectorCUDA addresses common GPU challenges through:
+
+1.  **Intelligent Memory Management**:
+    - **Off-heap Memory**: Vectors are stored in native off-heap memory, not effectively impacting Java GC pause times.
+    - **Memory Pooling**: `GpuMemoryPool` reuses GPU buffers for queries to prevent allocation thrashing.
+    - **Zero-Copy**: Uses pinned memory where possible for maximizing PCIe bandwidth.
+
+2.  **Adaptive Hybrid Routing**:
+    - **Performance Stability**: Small batches (<10 queries) are routed to CPU to avoid PCIe latency penalties.
+    - **Throughput Optimization**: Large batches are routed to GPU for massive parallelism.
+
+3.  **Numerical Precision**:
+    - **Consistency**: All kernels use `float32` (IEEE 754) precision.
+    - **Validation**: Test suite enforces 1e-5f epsilon tolerance between CPU and GPU results to ensure reproducibility.
+
+4.  **Graceful Fallback**:
+    - **No Crash Policy**: If CUDA is missing or VRAM is full, the library automatically falls back to the CPU implementation, logging a warning rather than crashing the application.
 
 ### Routing Decision Flow
 
