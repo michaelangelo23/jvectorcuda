@@ -1,8 +1,8 @@
 package com.vindex.jvectorcuda.gpu;
 
+import com.vindex.jvectorcuda.CudaUtils;
 import jcuda.Pointer;
 import jcuda.driver.CUdeviceptr;
-import jcuda.driver.CUresult;
 import jcuda.driver.JCudaDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,12 +59,9 @@ public class GpuMemoryPool implements AutoCloseable {
 
         // Allocate new block if pool is empty
         CUdeviceptr ptr = new CUdeviceptr();
-        int result = JCudaDriver.cuMemAlloc(ptr, sizeBytes);
-        if (result != CUresult.CUDA_SUCCESS) {
-            throw new RuntimeException(String.format(
-                    "Failed to allocate GPU memory from pool: %s (code %d, size %d)",
-                    CUresult.stringFor(result), result, sizeBytes));
-        }
+        CudaUtils.checkCudaResult(
+                JCudaDriver.cuMemAlloc(ptr, sizeBytes),
+                "cuMemAlloc from pool");
 
         return ptr;
     }
@@ -114,12 +111,9 @@ public class GpuMemoryPool implements AutoCloseable {
 
         // Allocate new pinned host memory
         Pointer hostPointer = new Pointer();
-        int result = JCudaDriver.cuMemAllocHost(hostPointer, sizeBytes);
-        if (result != CUresult.CUDA_SUCCESS) {
-            throw new RuntimeException(String.format(
-                    "Failed to allocate Pinned Host memory: %s (code %d, size %d)",
-                    CUresult.stringFor(result), result, sizeBytes));
-        }
+        CudaUtils.checkCudaResult(
+                JCudaDriver.cuMemAllocHost(hostPointer, sizeBytes),
+                "cuMemAllocHost Pinned Memory");
 
         return hostPointer;
     }

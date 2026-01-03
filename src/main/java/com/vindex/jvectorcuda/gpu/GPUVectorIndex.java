@@ -27,6 +27,7 @@ import static jcuda.driver.JCudaDriver.cuMemcpyHtoDAsync;
 import static jcuda.driver.JCudaDriver.cuMemFree;
 import static jcuda.driver.JCudaDriver.cuMemGetInfo;
 import static jcuda.driver.JCudaDriver.cuStreamSynchronize;
+import static com.vindex.jvectorcuda.CudaUtils.checkCudaResult;
 
 /**
  * GPU-accelerated vector index using NVIDIA CUDA for high-performance
@@ -779,14 +780,4 @@ public class GPUVectorIndex implements VectorIndex {
                 (availableBytes * 100) / totalBytes);
     }
 
-    // Check CUDA result and throw exception on error
-    private static void checkCudaResult(int result, String operation) {
-        if (result != CUresult.CUDA_SUCCESS) {
-            throw new RuntimeException(String.format(
-                    "CUDA error in %s: %s (code %d)",
-                    operation,
-                    CUresult.stringFor(result),
-                    result));
-        }
-    }
 }

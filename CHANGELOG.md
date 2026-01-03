@@ -142,6 +142,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Pinned Memory (Zero-Copy):** Implemented `cuMemAllocHost` support in `GpuMemoryPool` for faster Host-to-Device transfers (enabled transparently).
 - **Memory Pooling:** Implemented `GpuMemoryPool` to reuse GPU memory for query vectors, eliminating `cuMemAlloc` overhead on searches.
+- **GPU OOM Exception:** Added `GpuOutOfMemoryException` and centralized `CudaUtils.checkCudaResult` for graceful error handling.
 - **Detailed Benchmarks:** Added Latency (ms) and Transfer Overhead metrics to benchmark reports.
 - **Advanced Benchmark Tests:** Added `GpuBreakEvenTest` and `PerformanceBenchmarkTest` for deep analysis.
 
