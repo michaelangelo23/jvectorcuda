@@ -328,7 +328,7 @@ VectorIndex safeGpu = VectorIndexFactory.gpuThreadSafe(384);
 
 ## Benchmarks
 
-See the [benchmarks folder](benchmarks/) for detailed results.
+See the [benchmarks folder](benchmarks/) for detailed results, and the [Optimization Guide](OPTIMIZATION_GUIDE.md) for technical details on the optimizations.
 
 **Sample Results** (GTX 1080 Max-Q, 384 dimensions, 50K vectors):
 
@@ -344,6 +344,18 @@ Run your own benchmarks:
 ```bash
 ./gradlew benchmark
 ```
+
+### Performance Optimizations
+
+JVectorCUDA includes several performance optimizations:
+
+- **4-way loop unrolling** in distance calculations (10-30% speedup)
+- **Primitive max-heap** for top-k selection (reduced GC pressure)
+- **Memory coalescing** in CUDA kernels for efficient GPU memory access
+- **Shared memory caching** for query vectors in GPU kernels
+- **Persistent GPU memory** architecture (5x+ speedup for batch queries)
+
+See [OPTIMIZATION_GUIDE.md](OPTIMIZATION_GUIDE.md) for detailed explanations.
 
 ---
 

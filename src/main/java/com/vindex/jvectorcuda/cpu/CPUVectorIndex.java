@@ -268,22 +268,73 @@ public class CPUVectorIndex implements VectorIndex {
     }
 
     // Euclidean distance between two vectors
+    // Optimized with 4-way loop unrolling for better CPU pipeline utilization
     private float euclideanDistance(float[] a, float[] b) {
-        float sum = 0.0f;
-        for (int i = 0; i < dimensions; i++) {
+        float sum0 = 0.0f, sum1 = 0.0f, sum2 = 0.0f, sum3 = 0.0f;
+        
+        // Process 4 elements at a time for better instruction-level parallelism
+        // Note: When dimensions < 4, limit is negative and unrolled loop is skipped
+        int i = 0;
+        final int limit = dimensions - 3;
+        for (; i < limit; i += 4) {
+            float diff0 = a[i] - b[i];
+            float diff1 = a[i + 1] - b[i + 1];
+            float diff2 = a[i + 2] - b[i + 2];
+            float diff3 = a[i + 3] - b[i + 3];
+            sum0 += diff0 * diff0;
+            sum1 += diff1 * diff1;
+            sum2 += diff2 * diff2;
+            sum3 += diff3 * diff3;
+        }
+        
+        // Handle remaining elements (and all elements when dimensions < 4)
+        float sum = sum0 + sum1 + sum2 + sum3;
+        for (; i < dimensions; i++) {
             float diff = a[i] - b[i];
             sum += diff * diff;
         }
+        
         return (float) Math.sqrt(sum);
     }
 
     // Cosine distance: 1 - cosine_similarity (smaller = more similar)
+    // Optimized with 4-way loop unrolling for better CPU pipeline utilization
     private float cosineDistance(float[] a, float[] b) {
-        float dotProduct = 0.0f;
-        float normA = 0.0f;
-        float normB = 0.0f;
+        float dotProduct0 = 0.0f, dotProduct1 = 0.0f, dotProduct2 = 0.0f, dotProduct3 = 0.0f;
+        float normA0 = 0.0f, normA1 = 0.0f, normA2 = 0.0f, normA3 = 0.0f;
+        float normB0 = 0.0f, normB1 = 0.0f, normB2 = 0.0f, normB3 = 0.0f;
         
-        for (int i = 0; i < dimensions; i++) {
+        // Process 4 elements at a time
+        // Note: When dimensions < 4, limit is negative and unrolled loop is skipped
+        int i = 0;
+        final int limit = dimensions - 3;
+        for (; i < limit; i += 4) {
+            float a0 = a[i], a1 = a[i + 1], a2 = a[i + 2], a3 = a[i + 3];
+            float b0 = b[i], b1 = b[i + 1], b2 = b[i + 2], b3 = b[i + 3];
+            
+            dotProduct0 += a0 * b0;
+            dotProduct1 += a1 * b1;
+            dotProduct2 += a2 * b2;
+            dotProduct3 += a3 * b3;
+            
+            normA0 += a0 * a0;
+            normA1 += a1 * a1;
+            normA2 += a2 * a2;
+            normA3 += a3 * a3;
+            
+            normB0 += b0 * b0;
+            normB1 += b1 * b1;
+            normB2 += b2 * b2;
+            normB3 += b3 * b3;
+        }
+        
+        // Combine partial sums
+        float dotProduct = dotProduct0 + dotProduct1 + dotProduct2 + dotProduct3;
+        float normA = normA0 + normA1 + normA2 + normA3;
+        float normB = normB0 + normB1 + normB2 + normB3;
+        
+        // Handle remaining elements (and all elements when dimensions < 4)
+        for (; i < dimensions; i++) {
             dotProduct += a[i] * b[i];
             normA += a[i] * a[i];
             normB += b[i] * b[i];
@@ -295,15 +346,33 @@ public class CPUVectorIndex implements VectorIndex {
         }
         
         float cosineSimilarity = dotProduct / denominator;
+        // Clamp to [-1, 1] to handle floating-point precision issues
+        cosineSimilarity = Math.max(-1.0f, Math.min(1.0f, cosineSimilarity));
         return 1.0f - cosineSimilarity;
     }
 
     // Inner product distance: -dot_product (smaller = more similar, i.e., higher dot product)
+    // Optimized with 4-way loop unrolling for better CPU pipeline utilization
     private float innerProductDistance(float[] a, float[] b) {
-        float dotProduct = 0.0f;
-        for (int i = 0; i < dimensions; i++) {
+        float sum0 = 0.0f, sum1 = 0.0f, sum2 = 0.0f, sum3 = 0.0f;
+        
+        // Process 4 elements at a time
+        // Note: When dimensions < 4, limit is negative and unrolled loop is skipped
+        int i = 0;
+        final int limit = dimensions - 3;
+        for (; i < limit; i += 4) {
+            sum0 += a[i] * b[i];
+            sum1 += a[i + 1] * b[i + 1];
+            sum2 += a[i + 2] * b[i + 2];
+            sum3 += a[i + 3] * b[i + 3];
+        }
+        
+        // Handle remaining elements (and all elements when dimensions < 4)
+        float dotProduct = sum0 + sum1 + sum2 + sum3;
+        for (; i < dimensions; i++) {
             dotProduct += a[i] * b[i];
         }
+        
         // Negate so that higher dot product = smaller distance
         return -dotProduct;
     }
@@ -317,30 +386,88 @@ public class CPUVectorIndex implements VectorIndex {
         return distanceMetric;
     }
 
-    // Find k smallest distances using max-heap, O(n log k)
+    // Find k smallest distances using a primitive int heap for better performance
+    // Avoids int[] wrapper allocation overhead of PriorityQueue<int[]>
+    // Time complexity: O(n log k), Space: O(k)
     private int[] findTopK(float[] distances, int k) {
         int n = distances.length;
         
-        // Max-heap of size k to track smallest distances
-        java.util.PriorityQueue<int[]> maxHeap = new java.util.PriorityQueue<>(
-            k, (a, b) -> Float.compare(distances[b[0]], distances[a[0]])
-        );
+        // Use primitive arrays instead of PriorityQueue to avoid boxing/allocation
+        int[] heapIndices = new int[k];
+        int heapSize = 0;
         
         for (int i = 0; i < n; i++) {
-            if (maxHeap.size() < k) {
-                maxHeap.offer(new int[]{i});
-            } else if (distances[i] < distances[maxHeap.peek()[0]]) {
-                maxHeap.poll();
-                maxHeap.offer(new int[]{i});
+            if (heapSize < k) {
+                // Build initial heap - insert at end and bubble up
+                heapIndices[heapSize] = i;
+                heapSize++;
+                bubbleUp(heapIndices, heapSize - 1, distances);
+            } else if (distances[i] < distances[heapIndices[0]]) {
+                // Replace max element if current is smaller
+                heapIndices[0] = i;
+                bubbleDown(heapIndices, 0, heapSize, distances);
             }
         }
         
-        // Extract indices sorted by distance
+        // Extract elements in sorted order (smallest first)
         int[] result = new int[k];
         for (int i = k - 1; i >= 0; i--) {
-            result[i] = maxHeap.poll()[0];
+            result[i] = heapIndices[0];
+            heapIndices[0] = heapIndices[heapSize - 1];
+            heapSize--;
+            if (heapSize > 0) {
+                bubbleDown(heapIndices, 0, heapSize, distances);
+            }
         }
         
         return result;
+    }
+    
+    /**
+     * Restores max-heap property by moving an element up the tree.
+     * After inserting at position idx, this ensures parent >= children.
+     * Time complexity: O(log k) where k is heap size.
+     */
+    private void bubbleUp(int[] heap, int idx, float[] distances) {
+        while (idx > 0) {
+            int parent = (idx - 1) / 2;
+            if (distances[heap[idx]] > distances[heap[parent]]) {
+                int tmp = heap[idx];
+                heap[idx] = heap[parent];
+                heap[parent] = tmp;
+                idx = parent;
+            } else {
+                break;
+            }
+        }
+    }
+    
+    /**
+     * Restores max-heap property by moving an element down the tree.
+     * After replacing root or removing max, this repairs the heap structure.
+     * Time complexity: O(log k) where k is heap size.
+     */
+    private void bubbleDown(int[] heap, int idx, int size, float[] distances) {
+        while (true) {
+            int left = 2 * idx + 1;
+            int right = 2 * idx + 2;
+            int largest = idx;
+            
+            if (left < size && distances[heap[left]] > distances[heap[largest]]) {
+                largest = left;
+            }
+            if (right < size && distances[heap[right]] > distances[heap[largest]]) {
+                largest = right;
+            }
+            
+            if (largest != idx) {
+                int tmp = heap[idx];
+                heap[idx] = heap[largest];
+                heap[largest] = tmp;
+                idx = largest;
+            } else {
+                break;
+            }
+        }
     }
 }

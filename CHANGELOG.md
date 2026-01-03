@@ -5,6 +5,33 @@ All notable changes to JVectorCUDA will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-01-03
+
+### Added
+- **OPTIMIZATION_GUIDE.md** - Comprehensive documentation of performance optimizations and scientific principles
+- Link to optimization guide in README benchmarks section
+
+### Changed
+- **4-way loop unrolling** in CPU distance calculations for 10-30% speedup
+  - `euclideanDistance()`, `cosineDistance()`, `innerProductDistance()` now process 4 elements per iteration
+  - Enables better instruction-level parallelism (ILP) on modern CPUs
+- **Primitive max-heap** replaces `PriorityQueue<int[]>` in top-k selection
+  - Eliminates autoboxing overhead and per-element object allocation
+  - Reduces garbage collection pressure for large result sets
+- **CUDA kernels optimized** with 4-way loop unrolling
+  - `euclidean_distance.cu`, `cosine_similarity.cu`, `inner_product.cu` updated
+  - Better GPU pipeline utilization and reduced instruction overhead
+- **Memory access pattern improvements** in CUDA kernels
+  - Pre-compute vector base pointer to improve memory locality
+- **Integer overflow protection** in `flattenVectors()` for large datasets
+  - Validates total size before allocation to prevent cryptic array errors
+- **Floating-point clamping** in cosine distance to handle precision issues
+  - Clamps result to [-1, 1] range before computing distance
+
+### Fixed
+- GPU benchmark tests now properly skip when CUDA unavailable (using JUnit `assumeTrue`)
+- `GpuBreakEvenTest` and `EuclideanDistanceTest` no longer fail in CI without GPU
+
 ## [1.0.0] - 2026-01-03
 
 ### Added

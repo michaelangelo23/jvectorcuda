@@ -12,6 +12,7 @@ import java.util.Random;
 
 import static jcuda.driver.JCudaDriver.*;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 // Tests for Euclidean distance CUDA kernel (POC #3)
 @DisplayName("Euclidean Distance Kernel Tests (POC #3)")
@@ -19,9 +20,14 @@ class EuclideanDistanceTest {
 
     private static CUcontext context;
     private static CUdevice device;
+    private static boolean gpuAvailable;
 
     @BeforeAll
     static void setupCuda() {
+        // Check if CUDA is available before trying to initialize
+        gpuAvailable = CudaDetector.isAvailable();
+        assumeTrue(gpuAvailable, "Skipping GPU tests - CUDA not available");
+        
         cuInit(0);
         device = new CUdevice();
         cuDeviceGet(device, 0);
