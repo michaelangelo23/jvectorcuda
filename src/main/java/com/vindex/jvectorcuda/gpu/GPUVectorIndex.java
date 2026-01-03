@@ -578,8 +578,15 @@ public class GPUVectorIndex implements VectorIndex {
         return result;
     }
     
-    // Max-heap bubble up (for insertion)
-    // Caches distance values to reduce array access overhead
+    /**
+     * Restores max-heap property by moving an element up the tree.
+     * Uses distance caching to reduce array access overhead in the comparison loop.
+     * Time complexity: O(log k) where k is heap size.
+     * 
+     * @param heap array of indices into the distances array
+     * @param idx position of element to bubble up
+     * @param distances array of distance values
+     */
     private void bubbleUp(int[] heap, int idx, float[] distances) {
         int currentIdx = heap[idx];
         float currentDist = distances[currentIdx];
@@ -597,8 +604,17 @@ public class GPUVectorIndex implements VectorIndex {
         heap[idx] = currentIdx;
     }
     
-    // Max-heap bubble down (for extraction/replacement)
-    // Caches distance values to reduce array access overhead
+    /**
+     * Restores max-heap property by moving an element down the tree.
+     * Uses distance caching to reduce array access overhead by caching the
+     * current element's distance rather than re-reading it each iteration.
+     * Time complexity: O(log k) where k is heap size.
+     * 
+     * @param heap array of indices into the distances array
+     * @param idx position of element to bubble down
+     * @param size current size of the heap
+     * @param distances array of distance values
+     */
     private void bubbleDown(int[] heap, int idx, int size, float[] distances) {
         int currentIdx = heap[idx];
         float currentDist = distances[currentIdx];

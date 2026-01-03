@@ -423,7 +423,11 @@ public class CPUVectorIndex implements VectorIndex {
         return result;
     }
     
-    // Max-heap bubble up (for insertion)
+    /**
+     * Restores max-heap property by moving an element up the tree.
+     * After inserting at position idx, this ensures parent >= children.
+     * Time complexity: O(log k) where k is heap size.
+     */
     private void bubbleUp(int[] heap, int idx, float[] distances) {
         while (idx > 0) {
             int parent = (idx - 1) / 2;
@@ -438,7 +442,11 @@ public class CPUVectorIndex implements VectorIndex {
         }
     }
     
-    // Max-heap bubble down (for extraction/replacement)
+    /**
+     * Restores max-heap property by moving an element down the tree.
+     * After replacing root or removing max, this repairs the heap structure.
+     * Time complexity: O(log k) where k is heap size.
+     */
     private void bubbleDown(int[] heap, int idx, int size, float[] distances) {
         while (true) {
             int left = 2 * idx + 1;
