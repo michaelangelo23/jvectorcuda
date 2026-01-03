@@ -4,10 +4,9 @@
 
 #  JVectorCUDA
 
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.michaelangelo23/jvectorcuda.svg)](https://central.sonatype.com/artifact/io.github.michaelangelo23/jvectorcuda)
-
 A Java library for GPU-accelerated vector similarity search using NVIDIA CUDA.
 
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.michaelangelo23/jvectorcuda.svg)](https://central.sonatype.com/artifact/io.github.michaelangelo23/jvectorcuda)
 [![CI Build](https://github.com/michaelangelo23/jvectorcuda/actions/workflows/ci.yml/badge.svg)](https://github.com/michaelangelo23/jvectorcuda/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/michaelangelo23/jvectorcuda/actions/workflows/codeql.yml/badge.svg)](https://github.com/michaelangelo23/jvectorcuda/actions/workflows/codeql.yml)
 [![License: Apache 2.0](https://img.shields.io/github/license/michaelangelo23/jvectorcuda)](LICENSE)
