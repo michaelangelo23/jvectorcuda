@@ -145,12 +145,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **GPU OOM Exception:** Added `GpuOutOfMemoryException` and centralized `CudaUtils.checkCudaResult` for graceful error handling.
 - **Detailed Benchmarks:** Added Latency (ms) and Transfer Overhead metrics to benchmark reports.
 - **Advanced Benchmark Tests:** Added `GpuBreakEvenTest` and `PerformanceBenchmarkTest` for deep analysis.
+- **Examples package:** Added `com.vindex.jvectorcuda.examples` with:
+  - `BasicExample.java` - 50-line copy-paste ready example
+  - `BatchProcessing.java` - ML training pipeline use case
+- **README Use Cases section:** Added guidance on when to use JVectorCUDA vs JVector/cuVS-java
+- **README Competitive Comparison:** Added honest positioning table vs JVector, cuVS-java, FAISS
 
 ### Changed
 - **Benchmark Refactoring:** Refactored `BenchmarkRunner` to use `BenchmarkFramework`, reducing code duplication by ~200 lines.
 - **Documentation:** Updated `PERFORMANCE.md` with deep-dive analysis of persistent memory vs cold start.
+- **Strategic positioning:** Updated `README.md` intro and use cases. Removed "Competitive Comparison".
+- **Benchmarks:** Added comprehensive benchmark results to `README.md` showing 5.6x speedup.
 
 ### Fixed
+- **Critical GPU Batch Bug:** Fixed swapped grid dimensions in `launch2D` which caused incorrect nearest neighbor results in batch search.
+- **Problem 19:** Documented batch search bug in `PROBLEMS.md`.
+- **Validation:** Added NaN/Infinity checks to prevent invalid vector data.
+  - Batch search now shows correct 5.55x speedup for 10K vectors / 100 queries
 - **Console Output:** Fixed garbled unicode arrow in `GpuBreakEvenTest`.
 - **Compilation:** Fixed `CUresult` import error in `GpuMemoryPool`.
 - **Cleanup:** Removed unused `uploadQuery` method in `GPUVectorIndex`.

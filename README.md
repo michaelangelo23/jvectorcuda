@@ -6,9 +6,7 @@
 
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.michaelangelo23/jvectorcuda.svg)](https://central.sonatype.com/artifact/io.github.michaelangelo23/jvectorcuda)
 
-**GPU-accelerated vector similarity search for Java** - Now available on Maven Central!
-
-A Java library for CUDA-accelerated vector similarity search.
+A Java library for GPU-accelerated vector similarity search using NVIDIA CUDA.
 
 [![CI Build](https://github.com/michaelangelo23/jvectorcuda/actions/workflows/ci.yml/badge.svg)](https://github.com/michaelangelo23/jvectorcuda/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/michaelangelo23/jvectorcuda/actions/workflows/codeql.yml/badge.svg)](https://github.com/michaelangelo23/jvectorcuda/actions/workflows/codeql.yml)
@@ -299,17 +297,36 @@ VectorIndex safeGpu = VectorIndexFactory.gpuThreadSafe(384);
 
 ## Benchmarks
 
-See the [benchmarks folder](benchmarks/) for detailed results, and the [Optimization Guide](OPTIMIZATION_GUIDE.md) for technical details on the optimizations.
+**Test Hardware:** GTX 1080 Max-Q (8GB), Intel i7-7820HK, 384 dimensions, EUCLIDEAN distance
 
-**Sample Results** (GTX 1080 Max-Q, 384 dimensions, 50K vectors):
+### Single Query Performance
 
-| Scenario | CPU | GPU | Note |
-|----------|-----|-----|------|
-| Single query | 81 ms | 240 ms | CPU faster (no transfer overhead) |
-| 10 queries | 319 ms | 208 ms | GPU faster (batch amortizes cost) |
-| 100 queries | 2903 ms | 733 ms | **GPU 4x faster** |
+| Vectors | CPU (ms) | GPU (ms) | Speedup |
+|---------|----------|----------|---------|
+| 1,000 | 1.66 | 81.27 | 0.02x |
+| 10,000 | 4.11 | 104.02 | 0.04x |
+| 50,000 | 25.72 | 169.37 | 0.15x |
 
-> **Takeaway:** GPU excels for batch queries (10+) on larger datasets (10K+ vectors).
+> **Note:** Single queries are faster on CPU due to GPU transfer overhead.
+
+### Batch Query Performance (Persistent Memory)
+
+| Vectors | Queries | CPU (ms) | GPU (ms) | Speedup |
+|---------|---------|----------|----------|---------|
+| 1,000 | 10 | 2.98 | 2.65 | 1.13x |
+| 1,000 | 100 | 31.57 | 15.71 | **2.01x** |
+| 10,000 | 10 | 43.19 | 7.72 | **5.60x** |
+| 10,000 | 100 | 320.09 | 57.77 | **5.54x** |
+| 50,000 | 10 | 158.07 | 65.70 | **2.41x** |
+| 50,000 | 100 | 2063.32 | 608.02 | **3.39x** |
+
+### When to Use GPU
+
+| Scenario | Recommendation |
+|----------|----------------|
+| Single queries | Use CPU (HybridIndex auto-routes) |
+| Batch 10+ queries | **Use GPU** (2-6x speedup) |
+| Repeated queries, same dataset | **Use GPU** (persistent memory) |
 
 Run your own benchmarks:
 ```bash
@@ -358,28 +375,6 @@ JVectorCUDA excels at **batch processing** scenarios where GPU throughput matter
 - Billion-scale production search
 
 ---
-
-## Competitive Comparison
-
-JVectorCUDA serves a **different market** than production vector databases:
-
-| Feature | JVectorCUDA | JVector | cuVS-java | FAISS |
-|---------|-------------|---------|-----------|-------|
-| **Target Use Case** | Batch ML processing | Production search | Data center scale | Research |
-| **Algorithm** | Brute-force (exact) | HNSW, DiskANN | CAGRA, IVF-PQ | All |
-| **GPU Support** | Auto-routing | CPU only | Required | Optional |
-| **Java Native** | Pure Java | Pure Java | JNI wrapper | Python/C++ |
-| **Learning Curve** | Low | Low | Medium | High |
-| **Best For** | ML pipelines | Production apps | Billion-scale | Research |
-
-### Honest Positioning
-
-- **JVectorCUDA** = GPU utilities for Java ML developers
-- **JVector** = Production vector search (HNSW)
-- **cuVS-java** = Enterprise data center deployments
-- **FAISS** = Research and prototyping
-
-**We complement JVector, not compete with it.**
 
 ---
 
