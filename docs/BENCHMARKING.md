@@ -19,7 +19,10 @@ Run the built-in benchmark suite:
 ./gradlew benchmark
 ```
 
-This will run standard benchmarks and generate a performance report.
+This will run standard benchmarks and generate:
+- `benchmarkTests/benchmark-report.md` - Human-readable report
+- `benchmarkTests/benchmark-results-TIMESTAMP.csv` - CSV for regression tracking
+- `benchmarkTests/benchmark-results-TIMESTAMP.json` - JSON for programmatic analysis
 
 ## Standard Benchmark Suite
 
@@ -287,8 +290,8 @@ Before making changes:
 
 ```bash
 ./gradlew benchmark
-# Save results
-mv benchmark-results.csv baseline.csv
+# Results saved to benchmarkTests/
+cp benchmarkTests/benchmark-results-*.csv benchmarkTests/baseline.csv
 ```
 
 ### 2. After Changes
@@ -297,14 +300,14 @@ After your optimization:
 
 ```bash
 ./gradlew benchmark
-mv benchmark-results.csv optimized.csv
+# Compare new results with baseline
 ```
 
 ### 3. Compare Results
 
 ```bash
 # Using any CSV comparison tool or spreadsheet
-diff baseline.csv optimized.csv
+diff benchmarkTests/baseline.csv benchmarkTests/benchmark-results-*.csv
 ```
 
 Or programmatically:

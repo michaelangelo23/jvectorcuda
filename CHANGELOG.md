@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.0.1] - 2026-01-03
 
+### Added
+- **`VectorIndexFactory.hybridBuilder()`** - Factory method for configurable hybrid index thresholds
+  - Easy access to `HybridVectorIndex.Builder` with `withBatchThreshold()` and `withVectorThreshold()`
+  - Enables per-hardware tuning of GPU/CPU routing decisions
+- **Benchmark CSV/JSON export** - Regression tracking support in BenchmarkRunner
+  - `exportToCsv(String)` - Export benchmark results to CSV format
+  - `exportToJson(String)` - Export benchmark results to JSON format
+  - Automatic timestamped file generation
+- **benchmarkTests/ directory** - Centralized location for benchmark outputs
+  - All benchmark files now output to `benchmarkTests/` instead of project root
+  - Includes README.md with file format documentation
 
 ### Changed
 - **4-way loop unrolling** in CPU distance calculations for 10-30% speedup
@@ -24,10 +35,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Validates total size before allocation to prevent cryptic array errors
 - **Floating-point clamping** in cosine distance to handle precision issues
   - Clamps result to [-1, 1] range before computing distance
+- **BenchmarkRunner output path** changed to `benchmarkTests/` directory
 
 ### Fixed
+- **Test comparison bug in ParameterizedVectorIndexTest** - Critical fix
+  - `testCpuGpuCorrectness()` was comparing CPU EUCLIDEAN with GPU config.metric
+  - Now both indices use identical `config.metric` parameter
+  - GPU kernels were correct all along - test setup was faulty
+  - All 215 tests now pass
 - GPU benchmark tests now properly skip when CUDA unavailable (using JUnit `assumeTrue`)
 - `GpuBreakEvenTest` and `EuclideanDistanceTest` no longer fail in CI without GPU
+- Removed unused imports in `BenchmarkSystemTest.java`
+
+### Documentation
+- **PROBLEMS.md** - Added Problem 18 documenting test comparison bug and fix
+- **BENCHMARKING.md** - Updated with new output paths and export formats
+- **TODO.md** - Marked sections 0, 0b, 0c, 0d as RESOLVED
+- **benchmarkTests/README.md** - New file documenting benchmark output formats
+
+### Removed
+- CudaAvailabilityTest.java - Obsolete POC test, now covered by VectorIndexTest and IntegrationTest
+- EuclideanDistanceTest.java - Obsolete POC test, now covered by DistanceMetricTest and ParameterizedVectorIndexTest
+
 
 ## [1.0.0] - 2026-01-03
 

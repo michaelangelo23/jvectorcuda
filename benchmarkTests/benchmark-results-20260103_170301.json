@@ -1,0 +1,83 @@
+{
+  "benchmark_metadata": {
+    "timestamp": "2026-01-03T17:03:01.2080726",
+    "gpu_name": "NVIDIA GeForce GTX 1080 with MaxQ Design (Compute 6.1, 8191 MB VRAM, 1468 MHz)",
+    "dimensions": 384,
+    "warmup_iterations": 3,
+    "measured_iterations": 5
+  },
+  "results": [
+    {
+      "vector_count": 1000,
+      "query_count": 1,
+      "cpu_time_ms": 3.53,
+      "gpu_time_ms": 111.82,
+      "speedup": 0.03,
+      "winner": "CPU"
+    },
+    {
+      "vector_count": 10000,
+      "query_count": 1,
+      "cpu_time_ms": 17.18,
+      "gpu_time_ms": 115.22,
+      "speedup": 0.15,
+      "winner": "CPU"
+    },
+    {
+      "vector_count": 50000,
+      "query_count": 1,
+      "cpu_time_ms": 68.03,
+      "gpu_time_ms": 178.97,
+      "speedup": 0.38,
+      "winner": "CPU"
+    },
+    {
+      "vector_count": 1000,
+      "query_count": 10,
+      "cpu_time_ms": 3.83,
+      "gpu_time_ms": 110.40,
+      "speedup": 0.03,
+      "winner": "CPU"
+    },
+    {
+      "vector_count": 1000,
+      "query_count": 100,
+      "cpu_time_ms": 36.59,
+      "gpu_time_ms": 140.33,
+      "speedup": 0.26,
+      "winner": "CPU"
+    },
+    {
+      "vector_count": 10000,
+      "query_count": 10,
+      "cpu_time_ms": 55.25,
+      "gpu_time_ms": 125.53,
+      "speedup": 0.44,
+      "winner": "CPU"
+    },
+    {
+      "vector_count": 10000,
+      "query_count": 100,
+      "cpu_time_ms": 364.11,
+      "gpu_time_ms": 185.03,
+      "speedup": 1.97,
+      "winner": "GPU"
+    },
+    {
+      "vector_count": 50000,
+      "query_count": 10,
+      "cpu_time_ms": 265.34,
+      "gpu_time_ms": 269.09,
+      "speedup": 0.99,
+      "winner": "CPU"
+    },
+    {
+      "vector_count": 50000,
+      "query_count": 100,
+      "cpu_time_ms": 2115.38,
+      "gpu_time_ms": 757.24,
+      "speedup": 2.79,
+      "winner": "GPU"
+    }
+  ]
+}
