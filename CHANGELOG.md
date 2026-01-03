@@ -137,7 +137,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GPU-only brute-force (no approximate methods yet)
 - Cold-start penalty for single queries (upload overhead)
 
-## [Unreleased]
+## [1.0.1] - 2026-01-04
 
 ### Added
 - **Pinned Memory (Zero-Copy):** Implemented `cuMemAllocHost` support in `GpuMemoryPool` for faster Host-to-Device transfers (enabled transparently).
