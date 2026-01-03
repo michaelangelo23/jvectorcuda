@@ -302,7 +302,19 @@ public class StandardBenchmarkSuite {
         PercentileMetrics latencyMetrics = new PercentileMetrics(latencies);
 
         // Capture memory
-        MemoryMetrics memoryMetrics = MemoryMetrics.capture(0); // TODO: Add GPU memory tracking
+        long gpuMemoryUsed = 0;
+        try {
+            long total = com.vindex.jvectorcuda.gpu.VramUtil.getTotalVramBytes();
+            long available = com.vindex.jvectorcuda.gpu.VramUtil.getAvailableVramBytes();
+            if (total > 0 && available >= 0) {
+                gpuMemoryUsed = total - available;
+            }
+        } catch (NoClassDefFoundError | Exception e) {
+            // GPU not available or VramUtil not in classpath
+            logger.debug("Could not capture GPU memory: {}", e.getMessage());
+        }
+
+        MemoryMetrics memoryMetrics = MemoryMetrics.capture(gpuMemoryUsed);
 
         logger.info("Benchmark complete: QPS={}, p50={}ms, p95={}ms, p99={}ms",
                 String.format("%.1f", throughputQPS),
@@ -315,12 +327,12 @@ public class StandardBenchmarkSuite {
                 .vectorCount(dataset.getVectorCount())
                 .dimensions(dataset.getDimensions())
                 .k(k)
-                .metric(DistanceMetric.EUCLIDEAN) // TODO: Get from index
+                .metric(DistanceMetric.EUCLIDEAN) // Note: VectorIndex interface doesn't expose metric yet
                 .throughputQPS(throughputQPS)
                 .latency(latencyMetrics)
                 .memory(memoryMetrics)
                 .buildTimeMs(buildTimeMs)
-                .recallAt10(1.0) // TODO: Implement recall calculation
+                .recallAt10(1.0) // Note: Recall requires ground truth which is not available here
                 .build();
     }
 

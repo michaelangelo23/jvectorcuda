@@ -1,0 +1,10 @@
+
+task printClasspath {
+    doLast {
+        println "Compile Classpath:"
+        sourceSets.main.compileClasspath.each { println it }
+        
+        println "\nRuntime Classpath:"
+        sourceSets.main.runtimeClasspath.each { println it }
+    }
+}

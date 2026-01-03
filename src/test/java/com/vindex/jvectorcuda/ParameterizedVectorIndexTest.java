@@ -15,7 +15,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Parameterized tests for vector index implementations.
- * Tests all combinations of index types, metrics, dimensions, and dataset sizes.
+ * Tests all combinations of index types, metrics, dimensions, and dataset
+ * sizes.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ParameterizedVectorIndexTest {
@@ -43,7 +44,7 @@ class ParameterizedVectorIndexTest {
         @Override
         public String toString() {
             return String.format("%s[%s, %dd, %d vectors, k=%d]",
-                indexType, metric, dimensions, vectorCount, k);
+                    indexType, metric, dimensions, vectorCount, k);
         }
     }
 
@@ -56,20 +57,19 @@ class ParameterizedVectorIndexTest {
      */
     Stream<Arguments> provideTestConfigurations() {
         return Stream.of(
-            // CPU tests - all metrics and dimensions
-            Arguments.of(new TestConfig(IndexType.CPU, DistanceMetric.EUCLIDEAN, 128, 100, 10)),
-            Arguments.of(new TestConfig(IndexType.CPU, DistanceMetric.EUCLIDEAN, 384, 1000, 10)),
-            Arguments.of(new TestConfig(IndexType.CPU, DistanceMetric.COSINE, 128, 100, 10)),
-            Arguments.of(new TestConfig(IndexType.CPU, DistanceMetric.COSINE, 768, 1000, 5)),
-            Arguments.of(new TestConfig(IndexType.CPU, DistanceMetric.INNER_PRODUCT, 384, 100, 10)),
-            
-            // GPU tests - if available
-            Arguments.of(new TestConfig(IndexType.GPU, DistanceMetric.EUCLIDEAN, 384, 1000, 10)),
-            Arguments.of(new TestConfig(IndexType.GPU, DistanceMetric.COSINE, 768, 1000, 10)),
-            
-            // Hybrid tests
-            Arguments.of(new TestConfig(IndexType.HYBRID, DistanceMetric.EUCLIDEAN, 384, 1000, 10))
-        );
+                // CPU tests - all metrics and dimensions
+                Arguments.of(new TestConfig(IndexType.CPU, DistanceMetric.EUCLIDEAN, 128, 100, 10)),
+                Arguments.of(new TestConfig(IndexType.CPU, DistanceMetric.EUCLIDEAN, 384, 1000, 10)),
+                Arguments.of(new TestConfig(IndexType.CPU, DistanceMetric.COSINE, 128, 100, 10)),
+                Arguments.of(new TestConfig(IndexType.CPU, DistanceMetric.COSINE, 768, 1000, 5)),
+                Arguments.of(new TestConfig(IndexType.CPU, DistanceMetric.INNER_PRODUCT, 384, 100, 10)),
+
+                // GPU tests - if available
+                Arguments.of(new TestConfig(IndexType.GPU, DistanceMetric.EUCLIDEAN, 384, 1000, 10)),
+                Arguments.of(new TestConfig(IndexType.GPU, DistanceMetric.COSINE, 768, 1000, 10)),
+
+                // Hybrid tests
+                Arguments.of(new TestConfig(IndexType.HYBRID, DistanceMetric.EUCLIDEAN, 384, 1000, 10)));
     }
 
     /**
@@ -77,18 +77,17 @@ class ParameterizedVectorIndexTest {
      */
     Stream<Arguments> provideEdgeCaseConfigurations() {
         return Stream.of(
-            // Empty index
-            Arguments.of(new TestConfig(IndexType.CPU, DistanceMetric.EUCLIDEAN, 128, 0, 10)),
-            
-            // Single vector
-            Arguments.of(new TestConfig(IndexType.CPU, DistanceMetric.EUCLIDEAN, 128, 1, 10)),
-            
-            // k > vector count
-            Arguments.of(new TestConfig(IndexType.CPU, DistanceMetric.EUCLIDEAN, 128, 5, 10)),
-            
-            // Large k
-            Arguments.of(new TestConfig(IndexType.CPU, DistanceMetric.EUCLIDEAN, 128, 100, 50))
-        );
+                // Empty index
+                Arguments.of(new TestConfig(IndexType.CPU, DistanceMetric.EUCLIDEAN, 128, 0, 10)),
+
+                // Single vector
+                Arguments.of(new TestConfig(IndexType.CPU, DistanceMetric.EUCLIDEAN, 128, 1, 10)),
+
+                // k > vector count
+                Arguments.of(new TestConfig(IndexType.CPU, DistanceMetric.EUCLIDEAN, 128, 5, 10)),
+
+                // Large k
+                Arguments.of(new TestConfig(IndexType.CPU, DistanceMetric.EUCLIDEAN, 128, 100, 50)));
     }
 
     @ParameterizedTest
@@ -119,12 +118,13 @@ class ParameterizedVectorIndexTest {
 
             int expectedResultCount = Math.min(config.k, config.vectorCount);
             assertEquals(expectedResultCount, result.getIds().length, "Should return correct number of results");
-            assertEquals(expectedResultCount, result.getDistances().length, "Distances array should match IDs array length");
+            assertEquals(expectedResultCount, result.getDistances().length,
+                    "Distances array should match IDs array length");
 
             // Verify distances are sorted (closest first)
             for (int i = 1; i < result.getDistances().length; i++) {
                 assertTrue(result.getDistances()[i] >= result.getDistances()[i - 1],
-                    "Distances should be sorted in ascending order");
+                        "Distances should be sorted in ascending order");
             }
 
             // Verify all IDs are valid
@@ -177,8 +177,8 @@ class ParameterizedVectorIndexTest {
         }
 
         // Create both CPU and GPU indices
-        try (CPUVectorIndex cpuIndex = new CPUVectorIndex(config.dimensions);
-             GPUVectorIndex gpuIndex = new GPUVectorIndex(config.dimensions, config.metric)) {
+        try (CPUVectorIndex cpuIndex = new CPUVectorIndex(config.dimensions, config.metric);
+                GPUVectorIndex gpuIndex = new GPUVectorIndex(config.dimensions, config.metric)) {
 
             float[][] vectors = generateRandomVectors(config.vectorCount, config.dimensions, 42L);
             float[] query = generateRandomVector(config.dimensions, 100L);
@@ -191,19 +191,19 @@ class ParameterizedVectorIndexTest {
 
             // Results should be similar (allowing for floating point differences)
             assertEquals(cpuResult.getIds().length, gpuResult.getIds().length,
-                "CPU and GPU should return same number of results");
+                    "CPU and GPU should return same number of results");
 
             // Check that top results are similar
             // Note: Due to floating point precision, exact matches may differ slightly
             for (int i = 0; i < Math.min(3, cpuResult.getIds().length); i++) {
                 float cpuDist = cpuResult.getDistances()[i];
                 float gpuDist = gpuResult.getDistances()[i];
-                
+
                 // Allow 1% difference for floating point errors
                 float tolerance = Math.max(EPSILON, cpuDist * 0.01f);
                 assertTrue(Math.abs(cpuDist - gpuDist) < tolerance,
-                    String.format("CPU and GPU distances should be similar at rank %d: CPU=%.6f, GPU=%.6f", 
-                        i, cpuDist, gpuDist));
+                        String.format("CPU and GPU distances should be similar at rank %d: CPU=%.6f, GPU=%.6f",
+                                i, cpuDist, gpuDist));
             }
         }
     }

@@ -203,45 +203,7 @@ dependencies {
 </dependency>
 ```
 
-> **Note:** JCuda natives are required. After adding the dependency, run the setup script:
-> ```bash
-> # Windows
-> .\scripts\setup-jcuda.ps1
-> 
-> # Linux/macOS
-> ./scripts/setup-jcuda.sh
-> ```
-
-### Using JitPack (Alternative)
-
-[![](https://jitpack.io/v/michaelangelo23/jvectorcuda.svg)](https://jitpack.io/#michaelangelo23/jvectorcuda)
-
-**Gradle:**
-```gradle
-repositories {
-    maven { url 'https://jitpack.io' }
-}
-
-dependencies {
-    implementation 'com.github.michaelangelo23:jvectorcuda:v1.0.0'
-}
-```
-
-**Maven:**
-```xml
-<repositories>
-    <repository>
-        <id>jitpack.io</id>
-        <url>https://jitpack.io</url>
-    </repository>
-</repositories>
-
-<dependency>
-    <groupId>com.github.michaelangelo23</groupId>
-    <artifactId>jvectorcuda</artifactId>
-    <version>v1.0.0</version>
-</dependency>
-```
+> **Note:** The library automatically detects your OS and pulls the correct native binaries. No manual setup required!
 
 ### Building from Source
 
@@ -249,11 +211,7 @@ dependencies {
 git clone https://github.com/michaelangelo23/jvectorcuda.git
 cd jvectorcuda
 
-# Download JCuda dependencies
-.\scripts\setup-jcuda.ps1   # Windows
-./scripts/setup-jcuda.sh    # Linux/macOS
-
-# Build
+# Build (dependencies auto-downloaded)
 ./gradlew build
 ```
 

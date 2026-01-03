@@ -1,0 +1,107 @@
+{
+  "benchmark_metadata": {
+    "timestamp": "2026-01-03T18:14:02.4235784",
+    "gpu_name": "NVIDIA GeForce GTX 1080 with MaxQ Design (Compute 6.1, 8191 MB VRAM, 1468 MHz)",
+    "dimensions": 384,
+    "warmup_iterations": 3,
+    "measured_iterations": 5
+  },
+  "results": [
+    {
+      "vector_count": 1000,
+      "query_count": 1,
+      "cpu_time_ms": 1.97,
+      "gpu_time_ms": 111.13,
+      "speedup": 0.02,
+      "winner": "CPU"
+    },
+    {
+      "vector_count": 10000,
+      "query_count": 1,
+      "cpu_time_ms": 14.90,
+      "gpu_time_ms": 136.63,
+      "speedup": 0.11,
+      "winner": "CPU"
+    },
+    {
+      "vector_count": 50000,
+      "query_count": 1,
+      "cpu_time_ms": 88.87,
+      "gpu_time_ms": 186.35,
+      "speedup": 0.48,
+      "winner": "CPU"
+    },
+    {
+      "vector_count": 1000,
+      "query_count": 100,
+      "cpu_time_ms": 38.58,
+      "gpu_time_ms": 112.37,
+      "speedup": 0.34,
+      "winner": "CPU"
+    },
+    {
+      "vector_count": 10000,
+      "query_count": 100,
+      "cpu_time_ms": 398.52,
+      "gpu_time_ms": 253.04,
+      "speedup": 1.57,
+      "winner": "GPU"
+    },
+    {
+      "vector_count": 50000,
+      "query_count": 100,
+      "cpu_time_ms": 2100.27,
+      "gpu_time_ms": 804.64,
+      "speedup": 2.61,
+      "winner": "GPU"
+    },
+    {
+      "vector_count": 1000,
+      "query_count": 10,
+      "cpu_time_ms": 3.43,
+      "gpu_time_ms": 114.77,
+      "speedup": 0.03,
+      "winner": "CPU"
+    },
+    {
+      "vector_count": 1000,
+      "query_count": 100,
+      "cpu_time_ms": 51.78,
+      "gpu_time_ms": 153.47,
+      "speedup": 0.34,
+      "winner": "CPU"
+    },
+    {
+      "vector_count": 10000,
+      "query_count": 10,
+      "cpu_time_ms": 44.80,
+      "gpu_time_ms": 125.57,
+      "speedup": 0.36,
+      "winner": "CPU"
+    },
+    {
+      "vector_count": 10000,
+      "query_count": 100,
+      "cpu_time_ms": 450.47,
+      "gpu_time_ms": 188.06,
+      "speedup": 2.40,
+      "winner": "GPU"
+    },
+    {
+      "vector_count": 50000,
+      "query_count": 10,
+      "cpu_time_ms": 255.36,
+      "gpu_time_ms": 263.11,
+      "speedup": 0.97,
+      "winner": "CPU"
+    },
+    {
+      "vector_count": 50000,
+      "query_count": 100,
+      "cpu_time_ms": 2039.43,
+      "gpu_time_ms": 771.88,
+      "speedup": 2.64,
+      "winner": "GPU"
+    }
+  ]
+}

@@ -20,10 +20,40 @@ repositories {
     mavenCentral()
 }
 
+// Cross-Platform JCuda Configuration
+// Define these at the top level to avoid closure scoping issues
+def os = System.getProperty("os.name").toLowerCase()
+def arch = System.getProperty("os.arch").toLowerCase()
+def detectedClassifier
+
+if (os.contains("windows")) {
+    detectedClassifier = "windows-x86_64"
+} else if (os.contains("linux")) {
+    detectedClassifier = "linux-x86_64"
+} else if (os.contains("mac")) {
+    detectedClassifier = "apple-x86_64"
+    if (arch == "aarch64") {
+        println "WARNING: Apple Silicon (arm64) detected. JCuda might not support this architecture fully."
+    }
+} else {
+    throw new RuntimeException("Unsupported OS: " + os + ". JCuda requires Windows, Linux, or Mac (x86_64).")
+}
+
+ext {
+    jcudaTopVersion = "11.8.0"
+    jcudaClassifier = detectedClassifier
+}
+
 dependencies {
-    // JCuda (GPU backend) - Using local JARs to bypass POM placeholder issues
-    // JARs downloaded from Maven Central and placed in libs/
-    implementation fileTree(dir: 'libs', include: ['jcuda-*.jar', 'jcublas-*.jar', 'jcurand-*.jar'])
+    // Core JCuda Libraries (transitive=false to bypass broken POMs)
+    implementation("org.jcuda:jcuda:${jcudaTopVersion}") { transitive = false }
+    implementation("org.jcuda:jcublas:${jcudaTopVersion}") { transitive = false }
+    implementation("org.jcuda:jcurand:${jcudaTopVersion}") { transitive = false }
+
+    // Platform-Specific Native Libraries (Runtime Only)
+    runtimeOnly "org.jcuda:jcuda-natives:${jcudaTopVersion}:${jcudaClassifier}"
+    runtimeOnly "org.jcuda:jcublas-natives:${jcudaTopVersion}:${jcudaClassifier}"
+    runtimeOnly "org.jcuda:jcurand-natives:${jcudaTopVersion}:${jcudaClassifier}"
     
     // JVector (CPU fallback) - Pure Java vector search
     implementation 'io.github.jbellis:jvector:3.0.6'
