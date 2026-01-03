@@ -50,8 +50,8 @@ Use this template for your submission:
 | Per-query latency | X ms | Y ms | |
 
 ### Cold-Start Break-Even
-| Vectors | Batch | CPU (ms) | GPU (ms) | Winner |
-|---------|-------|----------|----------|--------|
+| Vectors | Batch | CPU (ms) | GPU (ms) | Speedup |
+|---------|-------|----------|----------|---------|
 | 10K | 1 | | | |
 | 10K | 10 | | | |
 | 50K | 1 | | | |

@@ -36,7 +36,7 @@ class HybridVectorIndexTest {
         try (HybridVectorIndex index = new HybridVectorIndex(DIMS)) {
             float[][] vectors = createTestVectors(100, DIMS);
             index.add(vectors);
-            
+
             assertEquals(100, index.size());
         }
     }
@@ -48,13 +48,13 @@ class HybridVectorIndexTest {
         try (HybridVectorIndex index = new HybridVectorIndex(DIMS)) {
             float[][] vectors = createTestVectors(100, DIMS);
             index.add(vectors);
-            
+
             SearchResult result = index.search(vectors[0], 5);
-            
+
             assertNotNull(result);
             assertEquals(5, result.getIds().length);
             assertEquals(5, result.getDistances().length);
-            
+
             // First result should be exact match (distance ~0)
             assertEquals(0, result.getIds()[0]);
             assertTrue(result.getDistances()[0] < EPSILON);
@@ -68,17 +68,17 @@ class HybridVectorIndexTest {
         try (HybridVectorIndex index = new HybridVectorIndex(DIMS)) {
             float[][] vectors = createTestVectors(100, DIMS);
             index.add(vectors);
-            
+
             float[][] queries = new float[10][DIMS];
             for (int i = 0; i < 10; i++) {
                 queries[i] = vectors[i];
             }
-            
+
             List<SearchResult> results = index.searchBatch(queries, 5);
-            
+
             assertNotNull(results);
             assertEquals(10, results.size());
-            
+
             // Each result should have the query vector as closest match
             for (int i = 0; i < 10; i++) {
                 assertEquals(i, results.get(i).getIds()[0]);
@@ -97,7 +97,7 @@ class HybridVectorIndexTest {
         try (HybridVectorIndex index = new HybridVectorIndex(DIMS)) {
             float[][] vectors = createTestVectors(100, DIMS);
             index.add(vectors);
-            
+
             // Small dataset (100 < 50000 threshold) -> should route to CPU
             assertEquals("CPU", index.getRoutingDecision());
         }
@@ -110,10 +110,10 @@ class HybridVectorIndexTest {
         try (HybridVectorIndex index = new HybridVectorIndex(DIMS)) {
             float[][] vectors = createTestVectors(100, DIMS);
             index.add(vectors);
-            
+
             // Small batch -> CPU
             assertEquals("CPU", index.getRoutingDecision(5));
-            
+
             // Large batch (>= 10) -> GPU if available, otherwise CPU
             String decision = index.getRoutingDecision(15);
             if (index.isGpuAvailable()) {
@@ -133,16 +133,16 @@ class HybridVectorIndexTest {
                 .withBatchThreshold(5)
                 .withVectorThreshold(100)
                 .build()) {
-            
+
             // Below threshold -> CPU
             float[][] vectors = createTestVectors(50, DIMS);
             index.add(vectors);
             assertEquals("CPU", index.getRoutingDecision());
-            
+
             // Above threshold -> GPU if available
             float[][] moreVectors = createTestVectors(100, DIMS);
             index.add(moreVectors);
-            
+
             if (index.isGpuAvailable()) {
                 assertEquals("GPU", index.getRoutingDecision());
             } else {
@@ -160,7 +160,7 @@ class HybridVectorIndexTest {
         try (HybridVectorIndex index = new HybridVectorIndex(DIMS)) {
             float[][] vectors = createTestVectors(100_000, DIMS);
             index.add(vectors);
-            
+
             if (!index.isGpuAvailable()) {
                 assertEquals("CPU", index.getRoutingDecision());
                 assertEquals("CPU", index.getRoutingDecision(100));
@@ -181,7 +181,7 @@ class HybridVectorIndexTest {
                 .withVectorThreshold(1000)
                 .withMetric(DistanceMetric.COSINE)
                 .build()) {
-            
+
             assertEquals(5, index.getBatchThreshold());
             assertEquals(1000, index.getVectorThreshold());
             assertEquals(DIMS, index.getDimensions());
@@ -209,9 +209,9 @@ class HybridVectorIndexTest {
         try (HybridVectorIndex index = new HybridVectorIndex(DIMS)) {
             float[][] vectors = createTestVectors(100, DIMS);
             index.add(vectors);
-            
+
             String report = index.getRoutingReport();
-            
+
             assertNotNull(report);
             assertTrue(report.contains("Dimensions: " + DIMS));
             assertTrue(report.contains("Vector Count:"));
@@ -240,22 +240,22 @@ class HybridVectorIndexTest {
         @Test
         @DisplayName("Null metric throws exception")
         void nullMetric() {
-            assertThrows(IllegalArgumentException.class, 
-                () -> new HybridVectorIndex(DIMS, null));
+            assertThrows(IllegalArgumentException.class,
+                    () -> new HybridVectorIndex(DIMS, null));
         }
 
         @Test
         @DisplayName("Invalid batch threshold throws exception")
         void invalidBatchThreshold() {
-            assertThrows(IllegalArgumentException.class, 
-                () -> HybridVectorIndex.builder(DIMS).withBatchThreshold(0).build());
+            assertThrows(IllegalArgumentException.class,
+                    () -> HybridVectorIndex.builder(DIMS).withBatchThreshold(0).build());
         }
 
         @Test
         @DisplayName("Invalid vector threshold throws exception")
         void invalidVectorThreshold() {
-            assertThrows(IllegalArgumentException.class, 
-                () -> HybridVectorIndex.builder(DIMS).withVectorThreshold(0).build());
+            assertThrows(IllegalArgumentException.class,
+                    () -> HybridVectorIndex.builder(DIMS).withVectorThreshold(0).build());
         }
 
         @Test
@@ -281,9 +281,9 @@ class HybridVectorIndexTest {
             try (HybridVectorIndex index = new HybridVectorIndex(DIMS)) {
                 float[][] vectors = createTestVectors(10, DIMS);
                 index.add(vectors);
-                
-                assertThrows(IllegalArgumentException.class, 
-                    () -> index.searchBatch(null, 5));
+
+                assertThrows(IllegalArgumentException.class,
+                        () -> index.searchBatch(null, 5));
             }
         }
 
@@ -293,9 +293,9 @@ class HybridVectorIndexTest {
             try (HybridVectorIndex index = new HybridVectorIndex(DIMS)) {
                 float[][] vectors = createTestVectors(10, DIMS);
                 index.add(vectors);
-                
-                assertThrows(IllegalArgumentException.class, 
-                    () -> index.searchBatch(new float[0][], 5));
+
+                assertThrows(IllegalArgumentException.class,
+                        () -> index.searchBatch(new float[0][], 5));
             }
         }
 
@@ -304,13 +304,13 @@ class HybridVectorIndexTest {
         void operationsAfterCloseThrow() {
             HybridVectorIndex index = new HybridVectorIndex(DIMS);
             index.close();
-            
-            assertThrows(IllegalStateException.class, 
-                () -> index.add(createTestVectors(10, DIMS)));
-            assertThrows(IllegalStateException.class, 
-                () -> index.search(new float[DIMS], 5));
-            assertThrows(IllegalStateException.class, 
-                () -> index.searchBatch(new float[1][DIMS], 5));
+
+            assertThrows(IllegalStateException.class,
+                    () -> index.add(createTestVectors(10, DIMS)));
+            assertThrows(IllegalStateException.class,
+                    () -> index.search(new float[DIMS], 5));
+            assertThrows(IllegalStateException.class,
+                    () -> index.searchBatch(new float[1][DIMS], 5));
         }
 
         @Test
@@ -336,9 +336,9 @@ class HybridVectorIndexTest {
             try (HybridVectorIndex index = new HybridVectorIndex(DIMS)) {
                 float[][] vectors = createTestVectors(100, DIMS);
                 index.add(vectors);
-                
+
                 SearchResult result = index.searchAsync(vectors[0], 5).get();
-                
+
                 assertNotNull(result);
                 assertEquals(5, result.getIds().length);
                 assertEquals(0, result.getIds()[0]);
@@ -352,7 +352,7 @@ class HybridVectorIndexTest {
                 try (HybridVectorIndex index = new HybridVectorIndex(DIMS, metric)) {
                     float[][] vectors = createTestVectors(10, DIMS);
                     index.add(vectors);
-                    
+
                     SearchResult result = index.search(vectors[0], 3);
                     assertNotNull(result);
                     assertEquals(3, result.getIds().length);
@@ -368,11 +368,11 @@ class HybridVectorIndexTest {
                     .withBatchThreshold(10)
                     .withVectorThreshold(100)
                     .build()) {
-                
+
                 // Add exactly 100 vectors (at threshold)
                 float[][] vectors = createTestVectors(100, DIMS);
                 index.add(vectors);
-                
+
                 if (index.isGpuAvailable()) {
                     // Batch of 9 (below threshold) -> CPU
                     assertEquals("CPU", index.getRoutingDecision(9));
@@ -389,11 +389,11 @@ class HybridVectorIndexTest {
                     .withBatchThreshold(10)
                     .withVectorThreshold(1000)
                     .build()) {
-                
+
                 // Only 50 vectors (below 1000 threshold)
                 float[][] vectors = createTestVectors(50, DIMS);
                 index.add(vectors);
-                
+
                 if (index.isGpuAvailable()) {
                     // Large batch but small dataset -> still GPU (batch threshold met)
                     assertEquals("GPU", index.getRoutingDecision(100));
@@ -410,9 +410,9 @@ class HybridVectorIndexTest {
                     float[][] vectors = createTestVectors(10, DIMS);
                     index.add(vectors);
                 }
-                
+
                 assertEquals(100, index.size());
-                
+
                 // Search should still work correctly
                 float[] query = new float[DIMS];
                 SearchResult result = index.search(query, 5);
@@ -436,18 +436,18 @@ class HybridVectorIndexTest {
             if (!CudaDetector.isAvailable()) {
                 return;
             }
-            
+
             try (HybridVectorIndex index = HybridVectorIndex.builder(DIMS)
                     .withBatchThreshold(5)
                     .withVectorThreshold(100)
                     .build()) {
-                
+
                 float[][] vectors = createTestVectors(1000, DIMS);
                 index.add(vectors);
-                
+
                 assertTrue(index.isGpuAvailable());
                 assertEquals("GPU", index.getRoutingDecision());
-                
+
                 // Verify GPU path works
                 float[][] queries = new float[20][DIMS];
                 List<SearchResult> results = index.searchBatch(queries, 10);
@@ -464,8 +464,9 @@ class HybridVectorIndexTest {
         float[][] vectors = new float[count][dims];
         for (int i = 0; i < count; i++) {
             for (int j = 0; j < dims; j++) {
-                // Deterministic values for reproducibility
-                vectors[i][j] = (float) Math.sin(i * 0.1 + j * 0.01);
+                // Use scaling factor 10x for more distinct vectors (avoid GPU float precision
+                // issues)
+                vectors[i][j] = (float) Math.sin(i * 1.0 + j * 0.1);
             }
         }
         return vectors;

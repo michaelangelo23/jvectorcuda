@@ -303,13 +303,13 @@ See the [benchmarks folder](benchmarks/) for detailed results, and the [Optimiza
 
 **Sample Results** (GTX 1080 Max-Q, 384 dimensions, 50K vectors):
 
-| Scenario | CPU | GPU | Winner |
-|----------|-----|-----|--------|
-| Single query | 81 ms | 240 ms | CPU |
-| 10 queries | 319 ms | 208 ms | GPU |
-| 100 queries | 2903 ms | 733 ms | **GPU (4x)** |
+| Scenario | CPU | GPU | Note |
+|----------|-----|-----|------|
+| Single query | 81 ms | 240 ms | CPU faster (no transfer overhead) |
+| 10 queries | 319 ms | 208 ms | GPU faster (batch amortizes cost) |
+| 100 queries | 2903 ms | 733 ms | **GPU 4x faster** |
 
-> **Takeaway:** GPU wins for batch queries (10+) on larger datasets (10K+ vectors).
+> **Takeaway:** GPU excels for batch queries (10+) on larger datasets (10K+ vectors).
 
 Run your own benchmarks:
 ```bash
@@ -327,6 +327,59 @@ JVectorCUDA includes several performance optimizations:
 - **Persistent GPU memory** architecture (5x+ speedup for batch queries)
 
 See [OPTIMIZATION_GUIDE.md](OPTIMIZATION_GUIDE.md) for detailed explanations.
+
+---
+
+## Use Cases
+
+JVectorCUDA excels at **batch processing** scenarios where GPU throughput matters:
+
+### Ideal Use Cases
+
+| Use Case | Description | Expected Speedup |
+|----------|-------------|------------------|
+| **ML Training Pipelines** | Find similar examples for training data | 5-10x for batch |
+| **Batch Embedding Search** | Process many queries against static dataset | 3-7x |
+| **Duplicate Detection** | Batch similarity for deduplication | 5x+ |
+| **Recommendation Systems** | Batch user-item similarity | 3-5x |
+
+### When to Use JVectorCUDA
+
+**Use JVectorCUDA when:**
+- Processing **10+ queries** in a batch
+- Dataset is **static** (upload once, query many)
+- Need GPU acceleration **without learning CUDA**
+- Building **Java ML pipelines**
+
+**Use JVector/Lucene instead when:**
+- Need **approximate nearest neighbors** (HNSW)
+- Single queries with **lowest latency**
+- Dataset changes **frequently**
+- Billion-scale production search
+
+---
+
+## Competitive Comparison
+
+JVectorCUDA serves a **different market** than production vector databases:
+
+| Feature | JVectorCUDA | JVector | cuVS-java | FAISS |
+|---------|-------------|---------|-----------|-------|
+| **Target Use Case** | Batch ML processing | Production search | Data center scale | Research |
+| **Algorithm** | Brute-force (exact) | HNSW, DiskANN | CAGRA, IVF-PQ | All |
+| **GPU Support** | Auto-routing | CPU only | Required | Optional |
+| **Java Native** | Pure Java | Pure Java | JNI wrapper | Python/C++ |
+| **Learning Curve** | Low | Low | Medium | High |
+| **Best For** | ML pipelines | Production apps | Billion-scale | Research |
+
+### Honest Positioning
+
+- **JVectorCUDA** = GPU utilities for Java ML developers
+- **JVector** = Production vector search (HNSW)
+- **cuVS-java** = Enterprise data center deployments
+- **FAISS** = Research and prototyping
+
+**We complement JVector, not compete with it.**
 
 ---
 

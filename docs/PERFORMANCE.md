@@ -6,8 +6,8 @@ This document provides guidance on GPU vs CPU performance trade-offs. Results va
 
 ## Quick Summary
 
-| Scenario | Typical Winner | Why |
-|----------|----------------|-----|
+| Scenario | Recommended | Why |
+|----------|-------------|-----|
 | Single query (cold-start) | **CPU** | Memory transfer overhead dominates |
 | Batch queries (10+) with persistent memory | **GPU** | Transfer cost amortized, 2-10x speedup |
 
@@ -275,8 +275,8 @@ If GPU tests are skipped:
 
 | Mode | CPU Latency | GPU Latency | Speedup | Conclusion |
 |------|-------------|-------------|---------|------------|
-| **Cold Start** | 286 ms | 533 ms | 0.54x | CPU wins (Transfer overhead) |
-| **Persistent** | 30.38 ms | **5.94 ms** | **5.11x** | **GPU Wins (Raw Compute)** |
+| **Cold Start** | 286 ms | 533 ms | 0.54x | CPU faster (Transfer overhead) |
+| **Persistent** | 30.38 ms | **5.94 ms** | **5.11x** | **GPU Faster (Raw Compute)** |
 
 > **Key Takeaway:** You MUST use `VectorIndexFactory.gpu()` or `hybrid()` with persistent vectors to see performance gains. Single-shot `add()+search()` patterns are anti-patterns for GPU.
 

@@ -158,19 +158,17 @@ public class BenchmarkFramework {
     // Prints formatted comparison table to console
     public void printComparisonTable(List<BenchmarkResult> results) {
         System.out.println("\n=== JVectorCUDA Benchmark Results ===\n");
-        System.out.printf("%-12s %-8s %-10s %-10s %-10s %-8s %-12s%n",
-                "Vectors", "Dims", "CPU (ms)", "GPU (ms)", "Speedup", "Winner", "GPU Memory");
-        System.out.println("-".repeat(80));
+        System.out.printf("%-12s %-8s %-10s %-10s %-10s %-12s%n",
+                "Vectors", "Dims", "CPU (ms)", "GPU (ms)", "Speedup", "GPU Memory");
+        System.out.println("-".repeat(72));
 
         for (BenchmarkResult result : results) {
-            String winner = result.isGpuFaster() ? "GPU" : "CPU";
-            System.out.printf("%-12s %-8d %-10.2f %-10.2f %-10.2fx %-8s %-12.1f MB%n",
+            System.out.printf("%-12s %-8d %-10.2f %-10.2f %-10.2fx %-12.1f MB%n",
                     formatNumber(result.getVectorCount()),
                     result.getDimensions(),
                     result.getCpuTimeMs(),
                     result.getGpuTimeMs(),
                     result.getSpeedup(),
-                    winner,
                     result.getGpuMemoryUsedMB());
         }
 

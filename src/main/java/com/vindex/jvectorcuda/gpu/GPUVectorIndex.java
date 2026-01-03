@@ -465,9 +465,9 @@ public class GPUVectorIndex implements VectorIndex {
      * {@inheritDoc}
      *
      * <p>
-     * This is the most efficient way to use GPU search. Kernel launch overhead
-     * is amortized across all queries, providing 5-10x speedup vs sequential
-     * searches.
+     * This is the most efficient way to use GPU search. Uses a single kernel
+     * launch for all queries, with batch upload and download, providing 5-10x
+     * speedup vs sequential searches.
      */
     @Override
     public java.util.List<SearchResult> searchBatch(float[][] queries, int k) {
@@ -477,13 +477,78 @@ public class GPUVectorIndex implements VectorIndex {
             return java.util.Collections.emptyList();
         }
 
-        java.util.List<SearchResult> results = new java.util.ArrayList<>(queries.length);
+        int numQueries = queries.length;
+        long startTime = System.nanoTime();
 
-        for (float[] query : queries) {
-            results.add(search(query, k));
+        // 1. Flatten all queries into a single buffer
+        float[] flatQueries = new float[numQueries * dimensions];
+        for (int i = 0; i < numQueries; i++) {
+            System.arraycopy(queries[i], 0, flatQueries, i * dimensions, dimensions);
         }
 
-        return results;
+        // 2. Allocate GPU memory for queries and batch distances
+        long queriesSize = (long) numQueries * dimensions * Sizeof.FLOAT;
+        long batchDistancesSize = (long) numQueries * vectorCount * Sizeof.FLOAT;
+
+        CUdeviceptr d_queries = memoryPool.acquire(queriesSize);
+        CUdeviceptr d_batchDistances = new CUdeviceptr();
+        checkCudaResult(cuMemAlloc(d_batchDistances, batchDistancesSize), "cuMemAlloc batch distances");
+
+        try {
+            // 3. Upload all queries at once
+            checkCudaResult(
+                    cuMemcpyHtoD(d_queries, Pointer.to(flatQueries), queriesSize),
+                    "cuMemcpyHtoD batch queries");
+
+            // 4. Launch 2D grid kernel
+            // Kernel expects: blockIdx.x for vectors (gridX), blockIdx.y for queries
+            // (gridY)
+            int gridVectors = (vectorCount + BLOCK_SIZE - 1) / BLOCK_SIZE;
+
+            // Load batch kernel if not already loaded
+            GpuKernelLoader batchKernelLoader = new GpuKernelLoader(
+                    distanceMetric.getPtxFile().replace(".ptx", "_batch.ptx"),
+                    distanceMetric.getKernelName() + "Batch");
+
+            Pointer params = Pointer.to(
+                    Pointer.to(d_database),
+                    Pointer.to(d_queries),
+                    Pointer.to(d_batchDistances),
+                    Pointer.to(new int[] { vectorCount }),
+                    Pointer.to(new int[] { numQueries }),
+                    Pointer.to(new int[] { dimensions }));
+
+            // gridX = vectors, gridY = queries (matches kernel's blockIdx.x/blockIdx.y)
+            batchKernelLoader.launch2D(gridVectors, numQueries, BLOCK_SIZE, params);
+
+            // 5. Download all distances at once
+            float[] allDistances = new float[numQueries * vectorCount];
+            checkCudaResult(
+                    cuMemcpyDtoH(Pointer.to(allDistances), d_batchDistances, batchDistancesSize),
+                    "cuMemcpyDtoH batch distances");
+
+            // 6. Build results (top-K selection per query)
+            java.util.List<SearchResult> results = new java.util.ArrayList<>(numQueries);
+            for (int q = 0; q < numQueries; q++) {
+                float[] queryDistances = new float[vectorCount];
+                System.arraycopy(allDistances, q * vectorCount, queryDistances, 0, vectorCount);
+                int[] topKIndices = findTopK(queryDistances, k);
+                float[] topKDistances = new float[k];
+                for (int i = 0; i < k; i++) {
+                    topKDistances[i] = queryDistances[topKIndices[i]];
+                }
+                long searchTimeMs = (System.nanoTime() - startTime) / 1_000_000;
+                results.add(new SearchResult(topKIndices, topKDistances, searchTimeMs));
+            }
+
+            logger.debug("Batch search completed: {} queries in {} ms (true batching)",
+                    numQueries, (System.nanoTime() - startTime) / 1_000_000);
+            return results;
+
+        } finally {
+            memoryPool.release(d_queries, queriesSize);
+            cuMemFree(d_batchDistances);
+        }
     }
 
     /** {@inheritDoc} */

@@ -88,3 +88,52 @@ __global__ void euclideanDistanceShared(
         distances[idx] = sqrtf(sum);
     }
 }
+
+// Batch kernel for processing multiple queries with a single kernel launch.
+// Uses 2D grid: x-dimension = query index, y-dimension = vector blocks.
+// Output: distances[queryIdx * numVectors + vectorIdx]
+extern "C"
+__global__ void euclideanDistanceBatch(
+    const float* database,      // [numVectors x dimensions] flattened
+    const float* queries,       // [numQueries x dimensions] flattened
+    float* distances,           // [numQueries x numVectors] flattened output
+    int numVectors,
+    int numQueries,
+    int dimensions
+) {
+    // Query index from grid x-dimension
+    int queryIdx = blockIdx.x;
+    // Vector index from grid y-dimension and thread
+    int vectorIdx = blockIdx.y * blockDim.x + threadIdx.x;
+    
+    if (queryIdx < numQueries && vectorIdx < numVectors) {
+        const float* query = queries + queryIdx * dimensions;
+        const float* vec = database + vectorIdx * dimensions;
+        
+        float sum0 = 0.0f, sum1 = 0.0f, sum2 = 0.0f, sum3 = 0.0f;
+        
+        // Unrolled loop for better GPU pipeline utilization
+        int d = 0;
+        const int limit = dimensions - 3;
+        for (; d < limit; d += 4) {
+            float diff0 = vec[d] - query[d];
+            float diff1 = vec[d + 1] - query[d + 1];
+            float diff2 = vec[d + 2] - query[d + 2];
+            float diff3 = vec[d + 3] - query[d + 3];
+            sum0 += diff0 * diff0;
+            sum1 += diff1 * diff1;
+            sum2 += diff2 * diff2;
+            sum3 += diff3 * diff3;
+        }
+        
+        // Handle remaining elements
+        float sum = sum0 + sum1 + sum2 + sum3;
+        for (; d < dimensions; d++) {
+            float diff = vec[d] - query[d];
+            sum += diff * diff;
+        }
+        
+        // Output layout: [queryIdx][vectorIdx] -> linear index
+        distances[queryIdx * numVectors + vectorIdx] = sqrtf(sum);
+    }
+}

@@ -117,9 +117,9 @@ public class PerformanceBenchmarkTest {
 
         int[] batchSizes = { 1, 10, 100 };
 
-        System.out.printf("%-15s %-12s %-12s %-12s %-10s %-8s%n",
-                "Vectors", "Batch", "CPU (ms)", "GPU (ms)", "Speedup", "Winner");
-        System.out.println("-".repeat(75));
+        System.out.printf("%-15s %-12s %-12s %-12s %-10s%n",
+                "Vectors", "Batch", "CPU (ms)", "GPU (ms)", "Speedup");
+        System.out.println("-".repeat(65));
 
         for (int numVectors : vectorCounts) {
             for (int batchSize : batchSizes) {
@@ -129,15 +129,13 @@ public class PerformanceBenchmarkTest {
                 }
 
                 BenchmarkResult result = runBenchmark(numVectors, DIMENSIONS, batchSize);
-                String winner = result.speedup >= 1.0f ? "GPU" : "CPU";
 
-                System.out.printf("%-15s %-12d %-12.2f %-12.2f %-10.2fx %-8s%n",
+                System.out.printf("%-15s %-12d %-12.2f %-12.2f %-10.2fx%n",
                         formatNumber(numVectors),
                         batchSize,
                         result.cpuTimeMs,
                         result.gpuTimeMs,
-                        result.speedup,
-                        winner);
+                        result.speedup);
             }
             System.out.println();
         }

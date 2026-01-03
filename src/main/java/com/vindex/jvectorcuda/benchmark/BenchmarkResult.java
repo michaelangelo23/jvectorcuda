@@ -164,7 +164,7 @@ public final class BenchmarkResult {
         sb.append(String.format("CPU Time: %.2f ms%n", cpuTimeMs));
         sb.append(String.format("GPU Time: %.2f ms (Transfer: %.2f ms, Compute: %.2f ms)%n",
                 gpuTimeMs, gpuTransferTimeMs, gpuComputeTimeMs));
-        sb.append(String.format("Speedup: %.2fx (%s)%n", getSpeedup(), isGpuFaster() ? "GPU wins" : "CPU wins"));
+        sb.append(String.format("Speedup: %.2fx (%s)%n", getSpeedup(), isGpuFaster() ? "GPU faster" : "CPU faster"));
         sb.append(String.format("Transfer Overhead: %.1f%%%n", getTransferOverheadPercent()));
         sb.append("\n--- Throughput ---\n");
         sb.append(String.format("CPU: %.1f queries/sec%n", getCpuThroughput()));
