@@ -3,6 +3,9 @@ plugins {
     id 'maven-publish'
     id 'signing'
     id 'jacoco'
+    id 'checkstyle'
+    id 'pmd'
+    id 'com.github.spotbugs' version '6.0.28'
 }
 
 group = 'io.github.michaelangelo23'
@@ -66,6 +69,55 @@ tasks.register('benchmark', JavaExec) {
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
 
+// Quick start validation task
+tasks.register('quickStart') {
+    description = 'Validates entire project setup and runs diagnostics'
+    group = 'help'
+    
+    doLast {
+        println "\n=== JVectorCUDA Quick Start Validation ==="
+        println "\n1. Checking Java version..."
+        def javaVersion = System.getProperty("java.version")
+        println "   Java version: ${javaVersion}"
+        if (javaVersion.startsWith("17") || javaVersion.startsWith("21")) {
+            println "   ✓ Java version is compatible"
+        } else {
+            println "   ⚠ Recommended Java versions are 17 or 21"
+        }
+        
+        println "\n2. Checking JCuda libraries..."
+        def libsDir = file('libs')
+        if (libsDir.exists()) {
+            def jcudaJars = fileTree(libsDir).include('jcuda-*.jar', 'jcublas-*.jar', 'jcurand-*.jar').files
+            println "   Found ${jcudaJars.size()} JCuda JAR files"
+            if (jcudaJars.size() >= 3) {
+                println "   ✓ JCuda libraries found"
+            } else {
+                println "   ⚠ Missing JCuda libraries. Run setup script first."
+            }
+        } else {
+            println "   ⚠ libs/ directory not found"
+        }
+        
+        println "\n3. Compiling project..."
+        println "   Run './gradlew build' to compile"
+        
+        println "\n4. GPU Diagnostics..."
+        println "   Run './gradlew test --tests CudaAvailabilityTest' to check GPU availability"
+        
+        println "\n=== Next Steps ==="
+        println "• Run tests: ./gradlew test"
+        println "• Run benchmarks: ./gradlew benchmark"
+        println "• Check code quality: ./gradlew check"
+        println "• Generate coverage report: ./gradlew jacocoTestReport"
+        println ""
+    }
+}
+
+tasks.named('quickStart').configure {
+    dependsOn 'classes'
+}
+
 // JaCoCo code coverage
 jacoco {
     toolVersion = "0.8.14"  // Supports Java 25 (released Oct 2025)
@@ -83,6 +135,38 @@ jacocoTestReport {
 // Java 22+ users: coverage will work but may show warnings
 tasks.named('test') {
     finalizedBy jacocoTestReport
+}
+
+// Checkstyle configuration
+checkstyle {
+    toolVersion = '10.12.0'
+    configFile = file("${rootDir}/config/checkstyle/checkstyle.xml")
+    ignoreFailures = false
+    maxWarnings = 0
+}
+
+// PMD configuration
+pmd {
+    toolVersion = '7.10.0'
+    consoleOutput = true
+    ignoreFailures = false
+    ruleSets = [] // Use rulesets from config file
+    ruleSetFiles = files("${rootDir}/config/pmd/pmd-rules.xml")
+}
+
+// SpotBugs configuration
+spotbugs {
+    toolVersion = '4.8.6'
+    effort = 'max'
+    reportLevel = 'medium'
+    ignoreFailures = false
+}
+
+tasks.withType(com.github.spotbugs.snom.SpotBugsTask) {
+    reports {
+        html.required = true
+        xml.required = false
+    }
 }
 
 // Javadoc generation with proper configuration
