@@ -2,7 +2,6 @@ package com.vindex.jvectorcuda.benchmark;
 
 import com.vindex.jvectorcuda.DistanceMetric;
 import com.vindex.jvectorcuda.VectorIndex;
-import com.vindex.jvectorcuda.SearchResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,7 +66,7 @@ public class StandardBenchmarkSuite {
      */
     public static Dataset createSyntheticDataset(int vectorCount, int dimensions, int queryCount, long seed) {
         Random random = new Random(seed);
-        
+
         float[][] vectors = new float[vectorCount][dimensions];
         for (int i = 0; i < vectorCount; i++) {
             for (int j = 0; j < dimensions; j++) {
@@ -90,9 +89,9 @@ public class StandardBenchmarkSuite {
      * Standard datasets for reproducible benchmarking.
      */
     public static Dataset[] STANDARD_DATASETS = {
-        createSyntheticDataset(1_000, 384, 100, 42L),      // Small: Quick iteration
-        createSyntheticDataset(10_000, 384, 100, 42L),     // Medium: Development
-        createSyntheticDataset(100_000, 384, 100, 42L),    // Large: Pre-production
+            createSyntheticDataset(1_000, 384, 100, 42L), // Small: Quick iteration
+            createSyntheticDataset(10_000, 384, 100, 42L), // Medium: Development
+            createSyntheticDataset(100_000, 384, 100, 42L), // Large: Pre-production
     };
 
     /**
@@ -177,9 +176,9 @@ public class StandardBenchmarkSuite {
         @Override
         public String toString() {
             return String.format(
-                "BenchmarkResult[dataset=%s, vectors=%,d, dims=%d, QPS=%.1f, p50=%.2fms, p95=%.2fms, p99=%.2fms]",
-                datasetName, vectorCount, dimensions, throughputQPS,
-                latency.getP50(), latency.getP95(), latency.getP99());
+                    "BenchmarkResult[dataset=%s, vectors=%,d, dims=%d, QPS=%.1f, p50=%.2fms, p95=%.2fms, p99=%.2fms]",
+                    datasetName, vectorCount, dimensions, throughputQPS,
+                    latency.getP50(), latency.getP95(), latency.getP99());
         }
 
         public static class Builder {
@@ -306,23 +305,23 @@ public class StandardBenchmarkSuite {
         MemoryMetrics memoryMetrics = MemoryMetrics.capture(0); // TODO: Add GPU memory tracking
 
         logger.info("Benchmark complete: QPS={}, p50={}ms, p95={}ms, p99={}ms",
-            String.format("%.1f", throughputQPS),
-            String.format("%.2f", latencyMetrics.getP50()),
-            String.format("%.2f", latencyMetrics.getP95()),
-            String.format("%.2f", latencyMetrics.getP99()));
+                String.format("%.1f", throughputQPS),
+                String.format("%.2f", latencyMetrics.getP50()),
+                String.format("%.2f", latencyMetrics.getP95()),
+                String.format("%.2f", latencyMetrics.getP99()));
 
         return ComprehensiveBenchmarkResult.builder()
-            .datasetName(dataset.getName())
-            .vectorCount(dataset.getVectorCount())
-            .dimensions(dataset.getDimensions())
-            .k(k)
-            .metric(DistanceMetric.EUCLIDEAN) // TODO: Get from index
-            .throughputQPS(throughputQPS)
-            .latency(latencyMetrics)
-            .memory(memoryMetrics)
-            .buildTimeMs(buildTimeMs)
-            .recallAt10(1.0) // TODO: Implement recall calculation
-            .build();
+                .datasetName(dataset.getName())
+                .vectorCount(dataset.getVectorCount())
+                .dimensions(dataset.getDimensions())
+                .k(k)
+                .metric(DistanceMetric.EUCLIDEAN) // TODO: Get from index
+                .throughputQPS(throughputQPS)
+                .latency(latencyMetrics)
+                .memory(memoryMetrics)
+                .buildTimeMs(buildTimeMs)
+                .recallAt10(1.0) // TODO: Implement recall calculation
+                .build();
     }
 
     /**

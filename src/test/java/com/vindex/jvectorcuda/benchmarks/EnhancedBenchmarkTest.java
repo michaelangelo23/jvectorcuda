@@ -1,5 +1,6 @@
-package com.vindex.jvectorcuda.benchmark;
+package com.vindex.jvectorcuda.benchmarks;
 
+import com.vindex.jvectorcuda.benchmark.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -20,12 +21,12 @@ class EnhancedBenchmarkTest {
     @Test
     @DisplayName("PercentileMetrics calculates percentiles correctly")
     void testPercentileMetrics() {
-        double[] measurements = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0};
+        double[] measurements = { 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0 };
         PercentileMetrics metrics = new PercentileMetrics(measurements);
 
-        assertEquals(5.5, metrics.getP50(), 0.1);  // Median
-        assertEquals(9.5, metrics.getP95(), 0.1);  // 95th percentile
-        assertEquals(9.9, metrics.getP99(), 0.1);  // 99th percentile
+        assertEquals(5.5, metrics.getP50(), 0.1); // Median
+        assertEquals(9.5, metrics.getP95(), 0.1); // 95th percentile
+        assertEquals(9.9, metrics.getP99(), 0.1); // 99th percentile
         assertEquals(1.0, metrics.getMin());
         assertEquals(10.0, metrics.getMax());
         assertEquals(5.5, metrics.getMean(), 0.1);
@@ -35,7 +36,7 @@ class EnhancedBenchmarkTest {
     @Test
     @DisplayName("PercentileMetrics handles single measurement")
     void testPercentileMetricsSingleValue() {
-        double[] measurements = {42.0};
+        double[] measurements = { 42.0 };
         PercentileMetrics metrics = new PercentileMetrics(measurements);
 
         assertEquals(42.0, metrics.getP50());
@@ -56,9 +57,6 @@ class EnhancedBenchmarkTest {
     @Test
     @DisplayName("MemoryMetrics captures memory correctly")
     void testMemoryMetrics() {
-        Runtime runtime = Runtime.getRuntime();
-        long expectedHeapUsed = runtime.totalMemory() - runtime.freeMemory();
-        
         MemoryMetrics metrics = MemoryMetrics.capture(1024 * 1024 * 100); // 100 MB off-heap
 
         assertTrue(metrics.getHeapUsedBytes() > 0);
@@ -70,8 +68,7 @@ class EnhancedBenchmarkTest {
     @Test
     @DisplayName("StandardBenchmarkSuite creates synthetic datasets")
     void testSyntheticDatasetCreation() {
-        StandardBenchmarkSuite.Dataset dataset = 
-            StandardBenchmarkSuite.createSyntheticDataset(100, 128, 10, 42L);
+        StandardBenchmarkSuite.Dataset dataset = StandardBenchmarkSuite.createSyntheticDataset(100, 128, 10, 42L);
 
         assertNotNull(dataset);
         assertEquals(100, dataset.getVectorCount());
@@ -89,7 +86,7 @@ class EnhancedBenchmarkTest {
 
         assertNotNull(datasets);
         assertTrue(datasets.length >= 3);
-        
+
         // Verify datasets are ordered by size
         assertTrue(datasets[0].getVectorCount() < datasets[1].getVectorCount());
         assertTrue(datasets[1].getVectorCount() < datasets[2].getVectorCount());
@@ -101,11 +98,11 @@ class EnhancedBenchmarkTest {
         Path csvPath = tempDir.resolve("test.csv");
 
         // Create mock result
-        PercentileMetrics latency = new PercentileMetrics(new double[]{1.0, 2.0, 3.0});
+        PercentileMetrics latency = new PercentileMetrics(new double[] { 1.0, 2.0, 3.0 });
         MemoryMetrics memory = MemoryMetrics.capture(0);
-        
-        StandardBenchmarkSuite.ComprehensiveBenchmarkResult result = 
-            StandardBenchmarkSuite.ComprehensiveBenchmarkResult.builder()
+
+        StandardBenchmarkSuite.ComprehensiveBenchmarkResult result = StandardBenchmarkSuite.ComprehensiveBenchmarkResult
+                .builder()
                 .datasetName("Test Dataset")
                 .vectorCount(1000)
                 .dimensions(384)
@@ -118,7 +115,7 @@ class EnhancedBenchmarkTest {
                 .build();
 
         List<StandardBenchmarkSuite.ComprehensiveBenchmarkResult> results = Arrays.asList(result);
-        
+
         // Export to CSV
         BenchmarkResultExporter.exportToCSV(results, csvPath);
 
@@ -126,13 +123,13 @@ class EnhancedBenchmarkTest {
         assertTrue(Files.exists(csvPath));
         List<String> lines = Files.readAllLines(csvPath);
         assertTrue(lines.size() >= 2); // Header + 1 data row
-        
+
         // Check header
         String header = lines.get(0);
         assertTrue(header.contains("dataset"));
         assertTrue(header.contains("throughput_qps"));
         assertTrue(header.contains("latency_p50_ms"));
-        
+
         // Check data row
         String dataRow = lines.get(1);
         assertTrue(dataRow.contains("Test Dataset"));
@@ -146,11 +143,11 @@ class EnhancedBenchmarkTest {
         Path jsonPath = tempDir.resolve("test.json");
 
         // Create mock result
-        PercentileMetrics latency = new PercentileMetrics(new double[]{1.0, 2.0, 3.0});
+        PercentileMetrics latency = new PercentileMetrics(new double[] { 1.0, 2.0, 3.0 });
         MemoryMetrics memory = MemoryMetrics.capture(0);
-        
-        StandardBenchmarkSuite.ComprehensiveBenchmarkResult result = 
-            StandardBenchmarkSuite.ComprehensiveBenchmarkResult.builder()
+
+        StandardBenchmarkSuite.ComprehensiveBenchmarkResult result = StandardBenchmarkSuite.ComprehensiveBenchmarkResult
+                .builder()
                 .datasetName("Test Dataset")
                 .vectorCount(1000)
                 .dimensions(384)
@@ -163,14 +160,14 @@ class EnhancedBenchmarkTest {
                 .build();
 
         List<StandardBenchmarkSuite.ComprehensiveBenchmarkResult> results = Arrays.asList(result);
-        
+
         // Export to JSON
         BenchmarkResultExporter.exportToJSON(results, jsonPath);
 
         // Verify file exists and has content
         assertTrue(Files.exists(jsonPath));
         String content = Files.readString(jsonPath);
-        
+
         assertTrue(content.contains("\"benchmark_results\""));
         assertTrue(content.contains("\"dataset\": \"Test Dataset\""));
         assertTrue(content.contains("\"vector_count\": 1000"));
@@ -186,11 +183,11 @@ class EnhancedBenchmarkTest {
     void testCSVAppend(@TempDir Path tempDir) throws IOException {
         Path csvPath = tempDir.resolve("test.csv");
 
-        PercentileMetrics latency = new PercentileMetrics(new double[]{1.0, 2.0, 3.0});
+        PercentileMetrics latency = new PercentileMetrics(new double[] { 1.0, 2.0, 3.0 });
         MemoryMetrics memory = MemoryMetrics.capture(0);
-        
-        StandardBenchmarkSuite.ComprehensiveBenchmarkResult result1 = 
-            StandardBenchmarkSuite.ComprehensiveBenchmarkResult.builder()
+
+        StandardBenchmarkSuite.ComprehensiveBenchmarkResult result1 = StandardBenchmarkSuite.ComprehensiveBenchmarkResult
+                .builder()
                 .datasetName("Dataset 1")
                 .vectorCount(1000)
                 .dimensions(384)
@@ -201,8 +198,8 @@ class EnhancedBenchmarkTest {
                 .buildTimeMs(10.0)
                 .build();
 
-        StandardBenchmarkSuite.ComprehensiveBenchmarkResult result2 = 
-            StandardBenchmarkSuite.ComprehensiveBenchmarkResult.builder()
+        StandardBenchmarkSuite.ComprehensiveBenchmarkResult result2 = StandardBenchmarkSuite.ComprehensiveBenchmarkResult
+                .builder()
                 .datasetName("Dataset 2")
                 .vectorCount(2000)
                 .dimensions(768)
@@ -215,14 +212,14 @@ class EnhancedBenchmarkTest {
 
         // Append first result (creates file with header)
         BenchmarkResultExporter.appendToCSV(result1, csvPath);
-        
+
         // Append second result (appends without header)
         BenchmarkResultExporter.appendToCSV(result2, csvPath);
 
         // Verify file has 3 lines (header + 2 data rows)
         List<String> lines = Files.readAllLines(csvPath);
         assertEquals(3, lines.size());
-        
+
         assertTrue(lines.get(1).contains("Dataset 1"));
         assertTrue(lines.get(2).contains("Dataset 2"));
     }
@@ -233,23 +230,23 @@ class EnhancedBenchmarkTest {
         // Missing latency should throw
         assertThrows(NullPointerException.class, () -> {
             StandardBenchmarkSuite.ComprehensiveBenchmarkResult.builder()
-                .datasetName("Test")
-                .vectorCount(1000)
-                .dimensions(384)
-                // .latency(latency)  // Missing!
-                .memory(MemoryMetrics.capture(0))
-                .build();
+                    .datasetName("Test")
+                    .vectorCount(1000)
+                    .dimensions(384)
+                    // .latency(latency) // Missing!
+                    .memory(MemoryMetrics.capture(0))
+                    .build();
         });
 
         // Missing memory should throw
         assertThrows(NullPointerException.class, () -> {
             StandardBenchmarkSuite.ComprehensiveBenchmarkResult.builder()
-                .datasetName("Test")
-                .vectorCount(1000)
-                .dimensions(384)
-                .latency(new PercentileMetrics(new double[]{1.0}))
-                // .memory(memory)  // Missing!
-                .build();
+                    .datasetName("Test")
+                    .vectorCount(1000)
+                    .dimensions(384)
+                    .latency(new PercentileMetrics(new double[] { 1.0 }))
+                    // .memory(memory) // Missing!
+                    .build();
         });
     }
 }
