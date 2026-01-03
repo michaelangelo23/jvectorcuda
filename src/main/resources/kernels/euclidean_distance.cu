@@ -1,4 +1,5 @@
 // Euclidean distance kernel. Each thread computes distance for one database vector.
+// Optimized with 4-way loop unrolling for better instruction-level parallelism.
 extern "C"
 __global__ void euclideanDistance(
     const float* database,
@@ -10,10 +11,27 @@ __global__ void euclideanDistance(
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     
     if (idx < numVectors) {
-        float sum = 0.0f;
+        const float* vec = database + idx * dimensions;
+        float sum0 = 0.0f, sum1 = 0.0f, sum2 = 0.0f, sum3 = 0.0f;
         
-        for (int d = 0; d < dimensions; d++) {
-            float diff = database[idx * dimensions + d] - query[d];
+        // Process 4 elements at a time for better GPU pipeline utilization
+        int d = 0;
+        int limit = dimensions - 3;
+        for (; d < limit; d += 4) {
+            float diff0 = vec[d] - query[d];
+            float diff1 = vec[d + 1] - query[d + 1];
+            float diff2 = vec[d + 2] - query[d + 2];
+            float diff3 = vec[d + 3] - query[d + 3];
+            sum0 += diff0 * diff0;
+            sum1 += diff1 * diff1;
+            sum2 += diff2 * diff2;
+            sum3 += diff3 * diff3;
+        }
+        
+        // Handle remaining elements
+        float sum = sum0 + sum1 + sum2 + sum3;
+        for (; d < dimensions; d++) {
+            float diff = vec[d] - query[d];
             sum += diff * diff;
         }
         
@@ -41,10 +59,26 @@ __global__ void euclideanDistanceShared(
     __syncthreads();
     
     if (idx < numVectors) {
-        float sum = 0.0f;
+        const float* vec = database + idx * dimensions;
+        float sum0 = 0.0f, sum1 = 0.0f, sum2 = 0.0f, sum3 = 0.0f;
         
-        for (int d = 0; d < dimensions; d++) {
-            float diff = database[idx * dimensions + d] - sharedQuery[d];
+        // Process 4 elements at a time
+        int d = 0;
+        int limit = dimensions - 3;
+        for (; d < limit; d += 4) {
+            float diff0 = vec[d] - sharedQuery[d];
+            float diff1 = vec[d + 1] - sharedQuery[d + 1];
+            float diff2 = vec[d + 2] - sharedQuery[d + 2];
+            float diff3 = vec[d + 3] - sharedQuery[d + 3];
+            sum0 += diff0 * diff0;
+            sum1 += diff1 * diff1;
+            sum2 += diff2 * diff2;
+            sum3 += diff3 * diff3;
+        }
+        
+        float sum = sum0 + sum1 + sum2 + sum3;
+        for (; d < dimensions; d++) {
+            float diff = vec[d] - sharedQuery[d];
             sum += diff * diff;
         }
         

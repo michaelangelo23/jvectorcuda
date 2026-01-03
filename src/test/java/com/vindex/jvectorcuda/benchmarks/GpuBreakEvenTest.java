@@ -1,5 +1,6 @@
 package com.vindex.jvectorcuda.benchmarks;
 
+import com.vindex.jvectorcuda.CudaDetector;
 import com.vindex.jvectorcuda.gpu.GpuKernelLoader;
 import jcuda.Pointer;
 import jcuda.Sizeof;
@@ -12,6 +13,7 @@ import java.util.Random;
 
 import static jcuda.driver.JCudaDriver.*;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 // Benchmarks to find when GPU becomes faster than CPU for vector search
 @DisplayName("GPU Break-Even Point Benchmarks")
@@ -23,6 +25,7 @@ public class GpuBreakEvenTest {
     
     private static CUcontext context;
     private static CUdevice device;
+    private static boolean gpuAvailable;
 
     private GpuKernelLoader kernelLoader;
 
@@ -30,6 +33,10 @@ public class GpuBreakEvenTest {
     static void setupCuda() {
         // Print system specs at the start of benchmark tests
         com.vindex.jvectorcuda.benchmark.BenchmarkRunner.printSystemSpecs();
+        
+        // Check if CUDA is available before trying to initialize
+        gpuAvailable = CudaDetector.isAvailable();
+        assumeTrue(gpuAvailable, "Skipping GPU benchmarks - CUDA not available");
         
         cuInit(0);
         device = new CUdevice();

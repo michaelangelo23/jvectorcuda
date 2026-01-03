@@ -526,36 +526,96 @@ public class GPUVectorIndex implements VectorIndex {
     }
 
     private float[] flattenVectors(float[][] vectors) {
-        float[] flat = new float[vectors.length * dimensions];
+        // Check for potential integer overflow before array allocation
+        long totalSize = (long) vectors.length * dimensions;
+        if (totalSize > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException(String.format(
+                "Vector data exceeds maximum array size: %d vectors × %d dimensions = %d elements (max: %d)",
+                vectors.length, dimensions, totalSize, Integer.MAX_VALUE));
+        }
+        
+        float[] flat = new float[(int) totalSize];
         for (int i = 0; i < vectors.length; i++) {
             System.arraycopy(vectors[i], 0, flat, i * dimensions, dimensions);
         }
         return flat;
     }
 
-    // Find k smallest distances using max-heap, O(n log k)
+    // Find k smallest distances using a primitive int heap for better performance
+    // Avoids int[] wrapper allocation overhead of PriorityQueue<int[]>
+    // Time complexity: O(n log k), Space: O(k)
     private int[] findTopK(float[] distances, int k) {
         int n = distances.length;
         
-        java.util.PriorityQueue<int[]> maxHeap = new java.util.PriorityQueue<>(
-            k, (a, b) -> Float.compare(distances[b[0]], distances[a[0]])
-        );
+        // Use primitive arrays instead of PriorityQueue to avoid boxing/allocation
+        int[] heapIndices = new int[k];
+        int heapSize = 0;
         
         for (int i = 0; i < n; i++) {
-            if (maxHeap.size() < k) {
-                maxHeap.offer(new int[]{i});
-            } else if (distances[i] < distances[maxHeap.peek()[0]]) {
-                maxHeap.poll();
-                maxHeap.offer(new int[]{i});
+            if (heapSize < k) {
+                // Build initial heap - insert at end and bubble up
+                heapIndices[heapSize] = i;
+                heapSize++;
+                bubbleUp(heapIndices, heapSize - 1, distances);
+            } else if (distances[i] < distances[heapIndices[0]]) {
+                // Replace max element if current is smaller
+                heapIndices[0] = i;
+                bubbleDown(heapIndices, 0, heapSize, distances);
             }
         }
         
+        // Extract elements in sorted order (smallest first)
         int[] result = new int[k];
         for (int i = k - 1; i >= 0; i--) {
-            result[i] = maxHeap.poll()[0];
+            result[i] = heapIndices[0];
+            heapIndices[0] = heapIndices[heapSize - 1];
+            heapSize--;
+            if (heapSize > 0) {
+                bubbleDown(heapIndices, 0, heapSize, distances);
+            }
         }
         
         return result;
+    }
+    
+    // Max-heap bubble up (for insertion)
+    private void bubbleUp(int[] heap, int idx, float[] distances) {
+        while (idx > 0) {
+            int parent = (idx - 1) / 2;
+            if (distances[heap[idx]] > distances[heap[parent]]) {
+                int tmp = heap[idx];
+                heap[idx] = heap[parent];
+                heap[parent] = tmp;
+                idx = parent;
+            } else {
+                break;
+            }
+        }
+    }
+    
+    // Max-heap bubble down (for extraction/replacement)
+    private void bubbleDown(int[] heap, int idx, int size, float[] distances) {
+        while (true) {
+            int left = 2 * idx + 1;
+            int right = 2 * idx + 2;
+            int largest = idx;
+            
+            if (left < size && distances[heap[left]] > distances[heap[largest]]) {
+                largest = left;
+            }
+            if (right < size && distances[heap[right]] > distances[heap[largest]]) {
+                largest = right;
+            }
+            
+            if (largest != idx) {
+                int tmp = heap[idx];
+                heap[idx] = heap[largest];
+                heap[largest] = tmp;
+                idx = largest;
+            } else {
+                break;
+            }
+        }
     }
 
     // Validate GPU has sufficient memory before allocation
