@@ -1,272 +1,248 @@
 # JVectorCUDA Performance Analysis
 
-## System Specifications
-
-| Component | Details |
-|-----------|---------|
-| **Device** | Alienware 15 R3 |
-| **GPU** | NVIDIA GeForce GTX 1080 with Max-Q Design |
-| | Compute Capability 6.1, 8191 MB VRAM, 1468 MHz |
-| | 2560 CUDA Cores |
-| **CPU** | Intel Core i7-7820HK @ 2.90GHz (8 threads) |
-| **Memory** | JVM: 512 MB max, 256 MB allocated |
-| **OS** | Windows 11 10.0 (amd64) |
-| **Java** | 25 (OpenJDK 64-Bit Server VM) |
-| **Test Date** | January 3, 2026 |
+This document provides guidance on GPU vs CPU performance trade-offs. Results vary by hardware - **we encourage contributors to run benchmarks and share results!**
 
 ---
 
-## Executive Summary
+## Quick Summary
 
-| Scenario | Winner | Speedup | Why |
-|----------|--------|---------|-----|
-| Cold-start (any size) | CPU | 0.26x-1.04x | Memory transfer dominates |
-| Persistent memory | **GPU** | **5.56x** | Upload once, query many times |
-
----
-
-## Why 5.56x Speedup?
-
-From actual test data:
-```
-CPU: 100 queries × 50,000 vectors = 3,271.14 ms
-GPU: 100 queries × 50,000 vectors = 588.38 ms
-
-Speedup = 3271.14 / 588.38 = 5.56x
-```
-
-**The math:**
-- CPU does 100 queries at ~32.7ms each = 3,271ms total
-- GPU uploads data once (~60ms), then runs 100 queries at ~5.3ms each = 588ms total
-- GPU is **5.56x faster** because it only pays the upload cost once
+| Scenario | Typical Winner | Why |
+|----------|----------------|-----|
+| Single query (cold-start) | **CPU** | Memory transfer overhead dominates |
+| Batch queries (10+) with persistent memory | **GPU** | Transfer cost amortized, 2-10x speedup |
 
 ---
 
-## Why Cold-Start is Slow
+## Run Your Own Benchmarks
 
-### Memory Transfer Overhead: 114.2%
+```bash
+# Run all GPU benchmarks
+./gradlew test --tests "*GpuBreakEvenTest"
 
-```
-=== Memory Transfer Overhead Analysis ===
-Dataset: 50,000 vectors × 384 dimensions
-
-GPU compute time:     60.44 ms
-Memory transfer time: 69.00 ms (114.2% overhead)
-
-Transfer takes LONGER than compute!
+# Run full benchmark suite with report
+./gradlew runBenchmark
 ```
 
-The GPU spends **more time moving data** than computing. This is the PCIe bottleneck.
+The benchmark will automatically:
+- Detect your GPU and print specs
+- Scale test sizes to your available VRAM
+- Compare CPU vs GPU performance
+- Generate a report file
 
-### Timeline Comparison
+---
+
+## Understanding the Results
+
+### Why Cold-Start is Slow
 
 ```
 Cold-Start GPU (single query):
 ┌──────────────────────────────────────────────────────────────┐
-│  Upload Data     │  Compute  │  Download  │  Total: ~65ms   │
-│     ~60ms        │   ~5ms    │    ~1ms    │                 │
+│  Upload Data     │  Compute  │  Download  │  Total: ~Xms    │
+│   (PCIe bound)   │  (fast)   │   (fast)   │                 │
 └──────────────────────────────────────────────────────────────┘
 
 CPU (single query):
 ┌──────────────────────────────────────────────────────────────┐
-│              Compute in RAM               │  Total: ~35ms   │
-│                  ~35ms                    │                 │
+│              Compute in RAM               │  Total: ~Yms    │
+│            (no transfer needed)           │                 │
 └──────────────────────────────────────────────────────────────┘
-
-GPU is SLOWER: 65ms vs 35ms = 0.54x (CPU wins)
 ```
 
-### With Persistent Memory:
+For single queries, the GPU must:
+1. Upload database to VRAM (slow - PCIe bottleneck)
+2. Compute distances (fast)
+3. Download results (fast)
+
+The upload time often exceeds the compute time, making CPU faster for cold-start.
+
+### Why Persistent Memory Wins
 
 ```
 Persistent GPU (100 queries):
 ┌──────────────────────────────────────────────────────────────┐
-│ Upload │ Q1  │ Q2  │ Q3  │ ... │ Q100 │  Total: 588ms       │
-│  60ms  │ 5ms │ 5ms │ 5ms │ ... │ 5ms  │  (5.88ms/query)     │
+│ Upload │ Q1  │ Q2  │ Q3  │ ... │ Q100 │  Total: much faster │
+│ (once) │     │     │     │     │      │                     │
 └──────────────────────────────────────────────────────────────┘
 
 CPU (100 queries):
 ┌──────────────────────────────────────────────────────────────┐
-│ Q1   │ Q2   │ Q3   │ ... │ Q100 │  Total: 3,271ms           │
-│ 33ms │ 33ms │ 33ms │ ... │ 33ms │  (32.7ms/query)           │
+│ Q1   │ Q2   │ Q3   │ ... │ Q100 │  Total: N × single query  │
 └──────────────────────────────────────────────────────────────┘
-
-GPU is FASTER: 588ms vs 3,271ms = 5.56x (GPU wins)
 ```
 
----
-
-## Benchmark Results
-
-### Cold-Start Break-Even Analysis
-
-| Vectors | Batch | CPU (ms) | GPU (ms) | Speedup | Winner |
-|---------|-------|----------|----------|---------|--------|
-| 1K | 1 | 10.00 | 11.71 | 0.85x | CPU |
-| 1K | 10 | 8.02 | 31.16 | 0.26x | CPU |
-| 1K | 100 | 73.99 | 244.75 | 0.30x | CPU |
-| 10K | 1 | 5.67 | 17.44 | 0.33x | CPU |
-| 10K | 10 | 70.65 | 125.23 | 0.56x | CPU |
-| 10K | 100 | 745.02 | 1117.00 | 0.67x | CPU |
-| 50K | 1 | 34.46 | 90.23 | 0.38x | CPU |
-| 50K | 10 | 369.44 | 562.16 | 0.66x | CPU |
-| 50K | 100 | 3886.63 | 5004.70 | 0.78x | CPU |
-| 100K | 1 | 65.70 | 207.21 | 0.32x | CPU |
-| 100K | 10 | 1067.83 | 1022.39 | **1.04x** | **GPU** |
-
-**Only at 100K vectors with batch 10 does GPU barely win cold-start (1.04x)**
-
-### Persistent Memory Test
-
-| Metric | CPU | GPU |
-|--------|-----|-----|
-| Total time (100 queries) | 3,271 ms | 588 ms |
-| Per-query latency | 32.71 ms | 5.88 ms |
-| **Speedup** | - | **5.56x** |
-
-### Dimension Impact
-
-| Dimensions | Vectors | CPU (ms) | GPU (ms) | Speedup |
-|------------|---------|----------|----------|---------|
-| 128 | 50K | 7.45 | 25.27 | 0.29x |
-| 384 | 50K | 27.27 | 42.67 | 0.64x |
-| 768 | 25K | 42.97 | 61.53 | 0.70x |
-| 1536 | 10K | 26.02 | 37.65 | 0.69x |
-
-Higher dimensions = more compute per vector = better GPU utilization.
+By keeping the database in GPU memory:
+- Upload cost is paid only once
+- Each query only uploads the small query vector
+- GPU's parallel compute dominates
 
 ---
 
-## When to Use What
+## When to Use Each Mode
 
-### Use CPU (CPUVectorIndex)
-- Single queries or small batches
+### Use CPU (`VectorIndexFactory.cpu()`)
+- Single queries or small batches (< 10)
 - Database changes frequently
 - No GPU available
 - Dataset < 10K vectors
 
-### Use GPU (GPUVectorIndex)
+### Use GPU (`VectorIndexFactory.gpu()`)
 - Database is static (upload once)
 - High query throughput needed (100+ queries/sec)
 - Dataset is large (50K+ vectors)
 - Running many queries against same data
 
-### Use Hybrid (HybridVectorIndex)
+### Use Hybrid (`VectorIndexFactory.hybrid()`) - Recommended
 - Automatic routing based on batch size
 - Workload varies (mix of single and batch queries)
 - Best-of-both-worlds
 
 ---
 
-## Code Examples
+## Code Patterns
 
 ### Bad: Cold-Start Pattern (GPU Slower)
 
 ```java
 // DON'T DO THIS - creates new context every query
 for (Query q : queries) {
-    try (GPUVectorIndex index = new GPUVectorIndex(dims, maxVectors)) {
-        index.add(vectors);  // Upload 73MB every time! (~60ms)
-        index.search(q.vector, k);  // Fast compute (~5ms)
+    try (VectorIndex index = VectorIndexFactory.gpu(dims)) {
+        index.add(vectors);  // Upload to VRAM every time!
+        index.search(q.vector, k);
     }  // Context destroyed
 }
-// Result: 100 × 65ms = 6,500ms total
 ```
 
-### Good: Persistent Memory Pattern (GPU 5.56x Faster)
+### Good: Persistent Memory Pattern (GPU Faster)
 
 ```java
 // DO THIS - upload once, query many times
-GPUVectorIndex index = new GPUVectorIndex(dims, maxVectors);
-index.add(vectors);  // Upload 73MB once (~60ms)
-
-for (Query q : queries) {
-    index.search(q.vector, k);  // Data already in VRAM (~5ms each)
+try (VectorIndex index = VectorIndexFactory.gpu(dims)) {
+    index.add(vectors);  // Upload once
+    
+    for (Query q : queries) {
+        index.search(q.vector, k);  // Data already in VRAM
+    }
 }
-// Result: 60ms + (100 × 5ms) = 560ms total
+```
+
+### Best: Use Hybrid for Automatic Routing
+
+```java
+// RECOMMENDED - automatic CPU/GPU routing
+try (VectorIndex index = VectorIndexFactory.hybrid(dims)) {
+    index.add(vectors);
+    
+    // Single query → routed to CPU
+    SearchResult single = index.search(query, k);
+    
+    // Batch query → routed to GPU
+    List<SearchResult> batch = index.searchBatch(queries, k);
+}
 ```
 
 ---
 
-## Raw Test Output
+## Contributing Benchmarks
 
+We welcome benchmark contributions from different hardware configurations!
+
+### How to Contribute
+
+1. Run the benchmark suite:
+   ```bash
+   ./gradlew runBenchmark
+   ```
+
+2. Copy your `benchmark-report.md` output
+
+3. Create a file in `benchmarks/community/` named:
+   ```
+   benchmarks/community/<GPU_NAME>_<DATE>.md
+   ```
+   Example: `benchmarks/community/RTX_4090_2026-01-15.md`
+
+4. Submit a PR with your results
+
+### What We're Looking For
+
+- Different GPU generations (Pascal, Turing, Ampere, Ada, Hopper)
+- Different VRAM sizes (4GB, 8GB, 16GB, 24GB+)
+- Laptop vs desktop comparisons
+- Cloud GPU instances (T4, A10, A100, H100)
+
+---
+
+## Performance Factors
+
+### GPU Factors
+- **Compute Capability**: Higher = better (6.1 minimum)
+- **VRAM**: More = larger datasets
+- **Memory Bandwidth**: Higher = faster transfers
+- **CUDA Cores**: More = faster parallel compute
+
+### System Factors
+- **PCIe Version**: 3.0 vs 4.0 vs 5.0 affects transfer speed
+- **PCIe Lanes**: x16 vs x8 vs x4
+- **CPU Speed**: Affects comparison baseline
+- **System RAM**: Affects CPU-side performance
+
+### Software Factors
+- **JVM Warmup**: First few queries may be slower
+- **Driver Version**: Newer drivers often faster
+- **CUDA Version**: JVectorCUDA targets 11.8+
+
+---
+
+## Expected Results by GPU Tier
+
+| GPU Tier | Example | Expected Persistent Speedup |
+|----------|---------|----------------------------|
+| Entry Gaming | GTX 1060, RTX 3050 | 2-4x |
+| Mid Gaming | GTX 1080, RTX 3070 | 3-6x |
+| High Gaming | RTX 3090, RTX 4080 | 5-10x |
+| Data Center | T4, A10, A100 | 5-15x+ |
+
+*These are rough estimates. Actual results depend on workload and configuration.*
+
+---
+
+## Troubleshooting
+
+### GPU Slower Than Expected
+
+1. **Check VRAM usage**: Other apps consuming GPU memory?
+   ```bash
+   nvidia-smi
+   ```
+
+2. **Verify persistent memory pattern**: Are you recreating the index for each query?
+
+3. **Check batch size**: Single queries should use CPU
+
+### Out of Memory Errors
+
+Use the GPU memory calculator:
 ```
-=== GPU Break-Even Point Analysis ===
-
-Testing when GPU starts outperforming CPU...
-
-Vectors         Batch        CPU (ms)     GPU (ms)     Speedup    Winner  
----------------------------------------------------------------------------
-1K              1            10.00        11.71        0.85      x CPU     
-1K              10           8.02         31.16        0.26      x CPU     
-1K              100          73.99        244.75       0.30      x CPU     
-
-10K             1            5.67         17.44        0.33      x CPU     
-10K             10           70.65        125.23       0.56      x CPU     
-10K             100          745.02       1117.00      0.67      x CPU     
-
-50K             1            34.46        90.23        0.38      x CPU     
-50K             10           369.44       562.16       0.66      x CPU     
-50K             100          3886.63      5004.70      0.78      x CPU     
-
-100K            1            65.70        207.21       0.32      x CPU     
-100K            10           1067.83      1022.39      1.04      x GPU     
-
-=== Memory Transfer Overhead Analysis ===
-
-Total GPU time:     60.44 ms
-Transfer time:      69.00 ms (114.2%)
-
-WARNING: Transfer overhead dominates! (>50%)
-
-=== Persistent GPU Memory Test ===
-
-Scenario: Upload database once, run many queries
-
-CPU: 100 queries x 50,000 vectors = 3271.14 ms
-GPU: 100 queries x 50,000 vectors = 588.38 ms
-Speedup: 5.56x
-
-SUCCESS: GPU is faster with persistent memory!
-Per-query latency: 5.88ms
-
-=== Dimension Impact on GPU Performance ===
-
-Dimensions      Vectors      CPU (ms)     GPU (ms)     Speedup   
------------------------------------------------------------------
-128             50K          7.45         25.27        0.29      x
-384             50K          27.27        42.67        0.64      x
-768             25K          42.97        61.53        0.70      x
-1536            10K          26.02        37.65        0.69      x
-
-Higher dimensions = more compute per vector = better GPU utilization
+VRAM = vectors × dimensions × 4 bytes × 1.2 (overhead)
 ```
 
----
+Or check programmatically:
+```java
+int maxVectors = VramUtil.getMaxSafeVectorCount(384);
+```
 
-## Technical Notes
+### Tests Skipped
 
-### GTX 1080 Max-Q Limitations
-
-- Mobile variant with thermal throttling
-- ~20-30% slower than desktop GTX 1080
-- PCIe limited by laptop chipset
-- Modern RTX 4000+ series would show significantly better results
-
-### Why GPU is Faster Per-Query (Persistent)
-
-- GTX 1080 has 2560 CUDA cores computing distances in parallel
-- CPU has 8 threads computing sequentially
-- GPU does ~320 parallel operations per core vs CPU's 8 total threads
+If GPU tests are skipped:
+- Verify NVIDIA driver is installed: `nvidia-smi`
+- Check CUDA availability: Run a simple JCuda test
+- Ensure GPU meets minimum requirements (Compute 6.1+)
 
 ---
 
-## Conclusion
+## Further Reading
 
-**JVectorCUDA's hybrid approach is validated:**
-
-1. **Single queries → CPU** (lower latency, no transfer overhead)
-2. **Batch queries with persistent data → GPU** (5.56x throughput)
-3. **HybridVectorIndex** automatically routes based on batch size
-
----
+- [OPTIMIZATION_GUIDE.md](../OPTIMIZATION_GUIDE.md) - Technical optimization details
+- [README.md](../README.md) - Getting started guide
+- [NVIDIA CUDA Best Practices](https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/)

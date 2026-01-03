@@ -73,7 +73,7 @@ flowchart TB
     
     subgraph Implementations["Index Implementations"]
         direction LR
-        CPU["CPUIndex<br/>(HNSW)"]
+        CPU["CPUIndex<br/>(Brute-Force)"]
         GPU["GPUIndex<br/>(CUDA Brute-Force)"]
         Hybrid["HybridIndex<br/>(Auto-Route)"]
     end
@@ -117,7 +117,7 @@ flowchart LR
     
     IndexType -->|Hybrid| Smart{Batch Size?}
     IndexType -->|Auto| GPUCheck{GPU Available?}
-    IndexType -->|CPU| CPUPath[CPU: HNSW<br/>~89ms/query]
+    IndexType -->|CPU| CPUPath[CPU: Brute-Force<br/>~33ms/query]
     IndexType -->|GPU| GPUPath[GPU: CUDA<br/>~5ms/query<br/>+transfer cost]
     
     Smart -->|Single| CPUPath
@@ -143,14 +143,14 @@ flowchart LR
 |-------|---------|
 | ![Light Blue](https://img.shields.io/badge/-%20-e1f5ff) | Your application / Entry points |
 | ![Yellow](https://img.shields.io/badge/-%20-fff3cd) | API layer / Decision nodes |
-| ![Green](https://img.shields.io/badge/-%20-155724) | CPU path (JVector HNSW) |
+| ![Green](https://img.shields.io/badge/-%20-155724) | CPU path (Brute-Force) |
 | ![Red](https://img.shields.io/badge/-%20-721c24) | GPU path (CUDA kernels) |
 | ![Cyan](https://img.shields.io/badge/-%20-d1ecf1) | Hybrid routing (recommended) |
 
 **Key Points:**
 - **HybridIndex** (recommended) intelligently routes based on workload
-- **CPUIndex** uses HNSW approximation for low-latency single queries
-- **GPUIndex** uses brute-force exact search for high-throughput batches
+- **CPUIndex** uses brute-force exact search for low-latency single queries
+- **GPUIndex** uses brute-force exact search with CUDA for high-throughput batches
 - **Auto** selects GPU if available, otherwise falls back to CPU
 
 ---
@@ -167,6 +167,19 @@ flowchart LR
 | **GPU** | GTX 1060+ / RTX series / Tesla P4+ (Compute 6.1+) |
 
 > **Note:** No CUDA Toolkit installation required - just the GPU driver!
+
+### GPU Memory Requirements
+
+**Formula:** `VRAM = vectors × dimensions × 4 bytes × 1.2 (overhead)`
+
+| Vectors | 384 dims | 768 dims | 1536 dims |
+|---------|----------|----------|-----------|
+| 100K    | 184 MB   | 369 MB   | 737 MB    |
+| 500K    | 922 MB   | 1.8 GB   | 3.7 GB    |
+| 1M      | 1.8 GB   | 3.7 GB   | 7.4 GB    |
+| 10M     | 18 GB    | 37 GB    | 74 GB     |
+
+> **Rule of thumb:** Use 70% of your available VRAM for vectors. Check your GPU memory with `nvidia-smi`.
 
 ---
 

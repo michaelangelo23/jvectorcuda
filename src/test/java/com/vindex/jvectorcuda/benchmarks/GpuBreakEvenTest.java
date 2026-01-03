@@ -2,6 +2,7 @@ package com.vindex.jvectorcuda.benchmarks;
 
 import com.vindex.jvectorcuda.CudaDetector;
 import com.vindex.jvectorcuda.gpu.GpuKernelLoader;
+import com.vindex.jvectorcuda.gpu.VramUtil;
 import jcuda.Pointer;
 import jcuda.Sizeof;
 import jcuda.driver.CUcontext;
@@ -15,13 +16,28 @@ import static jcuda.driver.JCudaDriver.*;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-// Benchmarks to find when GPU becomes faster than CPU for vector search
+/**
+ * GPU break-even point benchmarks for JVectorCUDA.
+ * 
+ * <p>These benchmarks help determine when GPU acceleration is beneficial
+ * compared to CPU-only execution. Results vary by hardware - contributors
+ * are encouraged to run these tests and share results.
+ * 
+ * <p><b>Key findings (hardware-dependent):</b>
+ * <ul>
+ *   <li>Single queries: CPU usually wins (no transfer overhead)</li>
+ *   <li>Batch queries with persistent memory: GPU wins (amortized transfer)</li>
+ *   <li>Break-even point varies by GPU generation and PCIe bandwidth</li>
+ * </ul>
+ * 
+ * <p>Run with: {@code ./gradlew test --tests "*GpuBreakEvenTest"}
+ */
 @DisplayName("GPU Break-Even Point Benchmarks")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class GpuBreakEvenTest {
 
-    private static final int DIMENSIONS = 384; // Common embedding size
-    private static final Random random = new Random(42);
+    private static final int DIMENSIONS = 384; // Common embedding size (OpenAI ada-002)
+    private static final Random random = new Random(42); // Fixed seed for reproducibility
     
     private static CUcontext context;
     private static CUdevice device;
@@ -31,10 +47,14 @@ public class GpuBreakEvenTest {
 
     @BeforeAll
     static void setupCuda() {
-        // Print system specs at the start of benchmark tests
+        System.out.println("\n" + "=".repeat(70));
+        System.out.println("JVectorCUDA GPU Benchmark Suite");
+        System.out.println("=".repeat(70));
+        
+        // Print system specs dynamically
         com.vindex.jvectorcuda.benchmark.BenchmarkRunner.printSystemSpecs();
         
-        // Check if CUDA is available before trying to initialize
+        // Check if CUDA is available
         gpuAvailable = CudaDetector.isAvailable();
         assumeTrue(gpuAvailable, "Skipping GPU benchmarks - CUDA not available");
         
@@ -43,6 +63,10 @@ public class GpuBreakEvenTest {
         cuDeviceGet(device, 0);
         context = new CUcontext();
         cuCtxCreate(context, 0, device);
+        
+        // Print VRAM status
+        VramUtil.printVramStatus();
+        System.out.println();
     }
 
     @AfterAll
@@ -62,15 +86,31 @@ public class GpuBreakEvenTest {
         // Kernel loader resources are managed internally
     }
 
-    // Test 1: Find GPU break-even point across dataset sizes and batch sizes
+    /**
+     * Test 1: Find GPU break-even point across dataset sizes and batch sizes.
+     * 
+     * <p>This test measures cold-start performance where data is uploaded
+     * to GPU for each batch. Results help determine the minimum batch size
+     * where GPU becomes beneficial.
+     */
     @Test
     @Order(1)
     @DisplayName("Find GPU break-even point (dataset size x batch size)")
     void testBreakEvenPoints() {
         System.out.println("\n=== GPU Break-Even Point Analysis ===\n");
-        System.out.println("Testing when GPU starts outperforming CPU...\n");
+        System.out.println("Testing when GPU starts outperforming CPU (cold-start)...\n");
         
-        int[] vectorCounts = {1_000, 10_000, 50_000, 100_000};
+        // Scale test sizes based on available VRAM
+        int maxSafeVectors = VramUtil.getMaxSafeVectorCount(DIMENSIONS);
+        int[] baseVectorCounts = {1_000, 10_000, 50_000, 100_000};
+        int[] vectorCounts = new int[baseVectorCounts.length];
+        
+        for (int i = 0; i < baseVectorCounts.length; i++) {
+            vectorCounts[i] = Math.min(baseVectorCounts[i], maxSafeVectors);
+        }
+        
+        System.out.printf("Max safe vectors for your GPU: %,d (at %d dims)%n%n", maxSafeVectors, DIMENSIONS);
+        
         int[] batchSizes = {1, 10, 100};
         
         System.out.printf("%-15s %-12s %-12s %-12s %-10s %-8s%n",
@@ -98,17 +138,27 @@ public class GpuBreakEvenTest {
             System.out.println();
         }
         
-        System.out.println("Note: GPU speedup depends on JNI overhead and memory transfer costs.");
+        System.out.println("Note: Cold-start includes memory transfer for each batch.");
+        System.out.println("      For persistent memory scenarios, see testPersistentGpuMemory().");
     }
 
-    // Test 2: Measure memory transfer overhead percentage
+    /**
+     * Test 2: Measure memory transfer overhead percentage.
+     * 
+     * <p>This test isolates the PCIe transfer cost from GPU compute time.
+     * High transfer overhead (>50%) indicates that persistent memory
+     * patterns should be used for best performance.
+     */
     @Test
     @Order(2)
     @DisplayName("Measure memory transfer overhead percentage")
     void testMemoryTransferOverhead() {
         System.out.println("\n=== Memory Transfer Overhead Analysis ===\n");
         
-        int numVectors = 50_000;
+        // Scale to available VRAM
+        int numVectors = VramUtil.scaleToAvailableVram(50_000, DIMENSIONS);
+        System.out.printf("Testing with %,d vectors × %d dimensions%n%n", numVectors, DIMENSIONS);
+        
         float[][] database = generateRandomDatabase(numVectors, DIMENSIONS);
         float[] query = generateRandomVector(DIMENSIONS);
         
@@ -140,16 +190,23 @@ public class GpuBreakEvenTest {
         System.out.println();
         
         if (transferPct > 50) {
-            System.out.println("WARNING: Transfer overhead dominates! (>" + 50 + "%)");
-            System.out.println("         GPU may not be beneficial for this workload");
+            System.out.println("RESULT: Transfer overhead dominates (>" + 50 + "%)");
+            System.out.println("        → Use persistent memory pattern for best results");
         } else {
-            System.out.println("GOOD: Compute time dominates - GPU can provide speedup");
+            System.out.println("RESULT: Compute time dominates");
+            System.out.println("        → GPU provides good speedup even for single queries");
         }
-        
-        System.out.println("\nConclusion: For persistent data scenarios, keep database on GPU.");
     }
 
-    // Test 3: Persistent GPU memory - upload database once, query many times
+    /**
+     * Test 3: Persistent GPU memory - upload database once, query many times.
+     * 
+     * <p>This is the recommended usage pattern for JVectorCUDA. By keeping
+     * the database in GPU memory and only uploading queries, transfer cost
+     * is amortized across many queries.
+     * 
+     * <p>Expected result: GPU should be significantly faster (2-10x typical).
+     */
     @Test
     @Order(3)
     @DisplayName("Test persistent GPU memory (amortize transfer cost)")
@@ -157,8 +214,12 @@ public class GpuBreakEvenTest {
         System.out.println("\n=== Persistent GPU Memory Test ===\n");
         System.out.println("Scenario: Upload database once, run many queries\n");
         
-        int numVectors = 50_000;
+        // Scale to available VRAM
+        int numVectors = VramUtil.scaleToAvailableVram(50_000, DIMENSIONS);
         int numQueries = 100;
+        
+        System.out.printf("Dataset: %,d vectors × %d dimensions%n", numVectors, DIMENSIONS);
+        System.out.printf("Queries: %d%n%n", numQueries);
         
         float[][] database = generateRandomDatabase(numVectors, DIMENSIONS);
         float[][] queries = new float[numQueries][];
@@ -206,38 +267,41 @@ public class GpuBreakEvenTest {
         long gpuTime = System.nanoTime() - gpuStart;
         float speedup = (float) cpuTime / gpuTime;
         
-        System.out.printf("CPU: %d queries x %,d vectors = %.2f ms%n",
-                numQueries, numVectors, cpuTime / 1e6);
-        System.out.printf("GPU: %d queries x %,d vectors = %.2f ms%n",
-                numQueries, numVectors, gpuTime / 1e6);
+        System.out.printf("CPU: %d queries × %,d vectors = %.2f ms (%.2f ms/query)%n",
+                numQueries, numVectors, cpuTime / 1e6, (cpuTime / 1e6) / numQueries);
+        System.out.printf("GPU: %d queries × %,d vectors = %.2f ms (%.2f ms/query)%n",
+                numQueries, numVectors, gpuTime / 1e6, (gpuTime / 1e6) / numQueries);
         System.out.printf("Speedup: %.2fx%n", speedup);
         System.out.println();
         
         if (speedup > 1.0f) {
-            System.out.println("SUCCESS: GPU is faster with persistent memory!");
-            System.out.printf("Per-query latency: %.2fms%n", (gpuTime / 1e6) / numQueries);
+            System.out.println("RESULT: GPU is faster with persistent memory!");
+            System.out.printf("        Per-query latency: %.2f ms%n", (gpuTime / 1e6) / numQueries);
         } else {
-            System.out.println("NOTE: Even with persistent memory, GPU is not faster on this hardware");
-            System.out.println("      This is expected on GTX 1080 Max-Q due to JNI overhead");
+            System.out.println("RESULT: GPU is not faster on this hardware configuration");
+            System.out.println("        Consider using CPU-only mode for this workload");
         }
-        
-        System.out.println("\nThis data helps determine when to route queries to GPU vs CPU.");
     }
 
-    // Test 4: Different dimensions (scaled vector counts to fit GPU memory)
+    /**
+     * Test 4: Different vector dimensions impact on GPU performance.
+     * 
+     * <p>Higher dimensions mean more compute per vector, which generally
+     * improves GPU utilization. This test helps identify the dimension
+     * threshold where GPU becomes beneficial.
+     */
     @Test
     @Order(4)
     @DisplayName("Test different vector dimensions (128, 384, 768, 1536)")
     void testDifferentDimensions() {
         System.out.println("\n=== Dimension Impact on GPU Performance ===\n");
         
-        // Scale vector count based on dimensions to stay within memory limits
-        // GTX 1080 Max-Q has 8GB but shared with other processes
+        // Dynamically scale vector counts based on available VRAM
         int[][] dimAndVectors = {
-            {128, 50_000},   // 128D x 50K = ~24 MB
-            {384, 50_000},   // 384D x 50K = ~73 MB
-            {768, 25_000},   // 768D x 25K = ~73 MB (reduced)
-            {1536, 10_000}   // 1536D x 10K = ~58 MB (reduced for safety)
+            {128, VramUtil.scaleToAvailableVram(50_000, 128)},
+            {384, VramUtil.scaleToAvailableVram(50_000, 384)},
+            {768, VramUtil.scaleToAvailableVram(25_000, 768)},
+            {1536, VramUtil.scaleToAvailableVram(10_000, 1536)}
         };
         
         System.out.printf("%-15s %-12s %-12s %-12s %-10s%n",
@@ -272,8 +336,8 @@ public class GpuBreakEvenTest {
             }
         }
         
-        System.out.println("\nHigher dimensions = more compute per vector = better GPU utilization");
-        System.out.println("Note: Vector counts scaled to stay within GPU memory limits.");
+        System.out.println("\nNote: Higher dimensions = more compute per vector = better GPU utilization");
+        System.out.println("      Vector counts scaled automatically to fit your GPU memory.");
     }
 
     // ==================== Helper Methods ====================
