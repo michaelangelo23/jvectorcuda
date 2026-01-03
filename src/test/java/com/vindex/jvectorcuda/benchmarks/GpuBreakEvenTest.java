@@ -195,8 +195,8 @@ public class GpuBreakEvenTest {
         System.out.println();
 
         if (transferPct > 50) {
-            System.out.println("RESULT: Transfer overhead dominates (>" + 50 + "%)");
-            System.out.println("        → Use persistent memory pattern for best results");
+            System.out.println("RESULT: Transfer overhead dominates (>50%)");
+            System.out.println("        -> Use persistent memory pattern for best results");
         } else {
             System.out.println("RESULT: Compute time dominates");
             System.out.println("        → GPU provides good speedup even for single queries");
@@ -205,27 +205,25 @@ public class GpuBreakEvenTest {
 
     /**
      * Test 3: Persistent GPU memory - upload database once, query many times.
+     * Test persistent GPU memory (dataset stays on GPU).
+     * This eliminates transfer overhead for the dataset itself.
      * 
-     * <p>
-     * This is the recommended usage pattern for JVectorCUDA. By keeping
-     * the database in GPU memory and only uploading queries, transfer cost
-     * is amortized across many queries.
-     * 
-     * <p>
-     * Expected result: GPU should be significantly faster (2-10x typical).
+     * With Pinned Memory (Zero-Copy) optimization, we expect:
+     * - Cold Start: ~6-10ms (Driver overhead dominates)
+     * - Persistent: ~1-3ms per query (DMA transfer + Kernel execution)
      */
     @Test
     @Order(3)
     @DisplayName("Test persistent GPU memory (amortize transfer cost)")
     void testPersistentGpuMemory() {
-        System.out.println("\n=== Persistent GPU Memory Test ===\n");
-        System.out.println("Scenario: Upload database once, run many queries\n");
-
-        // Scale to available VRAM
-        int numVectors = VramUtil.scaleToAvailableVram(50_000, DIMENSIONS);
+        int dimensions = 384;
+        int numVectors = 50_000;
         int numQueries = 100;
 
-        System.out.printf("Dataset: %,d vectors x %d dimensions%n", numVectors, DIMENSIONS);
+        System.out.println("\n=== Persistent GPU Memory Test ===\n");
+        System.out.println("Scenario: Upload database once, run many queries (Pinned Memory Enabled)");
+
+        System.out.printf("Dataset: %,d vectors x %d dimensions%n", numVectors, dimensions);
         System.out.printf("Queries: %d%n%n", numQueries);
 
         float[][] database = generateRandomDatabase(numVectors, DIMENSIONS);

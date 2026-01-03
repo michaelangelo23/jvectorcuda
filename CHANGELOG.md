@@ -46,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GPU benchmark tests now properly skip when CUDA unavailable (using JUnit `assumeTrue`)
 - `GpuBreakEvenTest` and `EuclideanDistanceTest` no longer fail in CI without GPU
 - Removed unused imports in `BenchmarkSystemTest.java`
+- Removed unnecessary `@SuppressWarnings("deprecation")` from `CudaDetector.java`
 
 ### Documentation
 - **PROBLEMS.md** - Added Problem 18 documenting test comparison bug and fix
@@ -135,6 +136,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - No deletion support
 - GPU-only brute-force (no approximate methods yet)
 - Cold-start penalty for single queries (upload overhead)
+
+## [Unreleased]
+
+### Added
+- **Pinned Memory (Zero-Copy):** Implemented `cuMemAllocHost` support in `GpuMemoryPool` for faster Host-to-Device transfers (enabled transparently).
+- **Memory Pooling:** Implemented `GpuMemoryPool` to reuse GPU memory for query vectors, eliminating `cuMemAlloc` overhead on searches.
+- **Detailed Benchmarks:** Added Latency (ms) and Transfer Overhead metrics to benchmark reports.
+- **Advanced Benchmark Tests:** Added `GpuBreakEvenTest` and `PerformanceBenchmarkTest` for deep analysis.
+
+### Changed
+- **Benchmark Refactoring:** Refactored `BenchmarkRunner` to use `BenchmarkFramework`, reducing code duplication by ~200 lines.
+- **Documentation:** Updated `PERFORMANCE.md` with deep-dive analysis of persistent memory vs cold start.
+
+### Fixed
+- **Console Output:** Fixed garbled unicode arrow in `GpuBreakEvenTest`.
+- **Compilation:** Fixed `CUresult` import error in `GpuMemoryPool`.
+- **Cleanup:** Removed unused `uploadQuery` method in `GPUVectorIndex`.
 
 [Unreleased]: https://github.com/michaelangelo23/jvectorcuda/compare/v1.0.0-SNAPSHOT...HEAD
 [1.0.0-SNAPSHOT]: https://github.com/michaelangelo23/jvectorcuda/releases/tag/v1.0.0-SNAPSHOT

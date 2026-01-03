@@ -2,18 +2,13 @@ package com.vindex.jvectorcuda.benchmark;
 
 import com.vindex.jvectorcuda.CudaDetector;
 import com.vindex.jvectorcuda.DistanceMetric;
-import com.vindex.jvectorcuda.VectorIndex;
-import com.vindex.jvectorcuda.VectorIndexFactory;
 
 import java.io.FileWriter;
 import java.io.PrintWriter;
-import java.lang.management.ManagementFactory;
-import java.lang.management.OperatingSystemMXBean;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
 // Standalone benchmark runner. Run: ./gradlew benchmark
 public class BenchmarkRunner {
@@ -26,16 +21,25 @@ public class BenchmarkRunner {
 
     // Collect results for CSV/JSON export
     private final List<BenchmarkResult> allResults = new ArrayList<>();
+    private final BenchmarkFramework framework;
+
+    public BenchmarkRunner() {
+        this.framework = new BenchmarkFramework();
+    }
 
     /**
      * Print system specs to console. Useful for test setup.
      */
     public static void printSystemSpecs() {
-        BenchmarkRunner runner = new BenchmarkRunner();
+
         System.out.println("\n" + "=".repeat(70));
         System.out.println("SYSTEM SPECIFICATIONS");
         System.out.println("=".repeat(70));
-        System.out.println(runner.getSystemInfo());
+        // Using a temporary BenchmarkFramework to get system info would be cleaner,
+        // but for now we'll stick to what we have or reuse the one in runner if
+        // instance available.
+        // Since this is static, we'll just create a fresh runner/framework.
+        System.out.println(new BenchmarkFramework().getSystemInfo());
         System.out.println("=".repeat(70) + "\n");
     }
 
@@ -43,10 +47,12 @@ public class BenchmarkRunner {
         System.out.println("JVectorCUDA Benchmark Runner");
         System.out.println("============================\n");
 
-        // Print system specs first
-        printSystemSpecs();
-
         BenchmarkRunner runner = new BenchmarkRunner();
+
+        // Print system specs
+        System.out.println(runner.framework.getSystemInfo());
+        System.out.println("=".repeat(70) + "\n");
+
         String report = runner.runFullBenchmark();
 
         System.out.println(report);
@@ -96,47 +102,60 @@ public class BenchmarkRunner {
                 DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))).append("\n\n");
 
         report.append("## System Information\n\n");
-        report.append(getSystemInfo());
+        report.append(framework.getSystemInfo());
         report.append("\n");
 
-        boolean gpuAvailable = CudaDetector.isAvailable();
-        if (!gpuAvailable) {
+        if (!framework.isGpuAvailable()) {
             report.append("**WARNING: No CUDA-capable GPU detected. CPU-only results below.**\n\n");
         }
 
         report.append("## Benchmark Results\n\n");
 
         report.append("### Single Query Performance\n\n");
-        report.append("| Vectors | CPU (ms) | GPU (ms) | Speedup | Winner |\n");
-        report.append("|---------|----------|----------|---------|--------|\n");
+        report.append("| Vectors | CPU (ms) | GPU (ms) | CPU (QPS) | GPU (QPS) | Speedup |\n");
+        report.append("|---------|----------|----------|-----------|-----------|---------|\n");
 
         for (int vectorCount : VECTOR_COUNTS) {
-            BenchmarkResult result = runSingleQueryBenchmark(vectorCount);
-            allResults.add(result); // Collect for CSV/JSON export
+            BenchmarkConfig config = BenchmarkConfig.builder()
+                    .vectorCount(vectorCount)
+                    .dimensions(DIMENSIONS)
+                    .queryCount(1)
+                    .k(10)
+                    .warmupIterations(WARMUP_ITERATIONS)
+                    .measuredIterations(MEASURED_ITERATIONS)
+                    .distanceMetric(DistanceMetric.EUCLIDEAN)
+                    .build();
+
+            BenchmarkResult result = framework.run(config);
+            allResults.add(result);
             report.append(formatResultRow(result));
         }
         report.append("\n");
 
         report.append("### Persistent Memory (Many Queries, Same Dataset)\n\n");
-        report.append("| Vectors | Queries | CPU (ms) | GPU (ms) | Speedup | Winner |\n");
-        report.append("|---------|---------|----------|----------|---------|--------|\n");
+        report.append("| Vectors | Queries | CPU (ms) | GPU (ms) | CPU (QPS) | GPU (QPS) | Speedup |\n");
+        report.append("|---------|---------|----------|----------|-----------|-----------|---------|\n");
 
         for (int vectorCount : VECTOR_COUNTS) {
             for (int queryCount : QUERY_COUNTS) {
                 if (queryCount == 1)
                     continue; // Skip single query (covered above)
-                BenchmarkResult result = runPersistentMemoryBenchmark(vectorCount, queryCount);
-                allResults.add(result); // Collect for CSV/JSON export
+
+                BenchmarkConfig config = BenchmarkConfig.builder()
+                        .vectorCount(vectorCount)
+                        .dimensions(DIMENSIONS)
+                        .queryCount(queryCount)
+                        .k(10)
+                        .warmupIterations(WARMUP_ITERATIONS)
+                        .measuredIterations(MEASURED_ITERATIONS)
+                        .distanceMetric(DistanceMetric.EUCLIDEAN)
+                        .build();
+
+                BenchmarkResult result = framework.runPersistentMemoryBenchmark(config);
+                allResults.add(result);
                 report.append(formatResultRowWithQueries(result));
             }
         }
-        report.append("\n");
-
-        report.append("### Memory Transfer Analysis\n\n");
-        TransferAnalysis transfer = measureTransferOverhead(50_000);
-        report.append(String.format("- Upload time (50K vectors x %dD): %.1f ms\n", DIMENSIONS, transfer.uploadMs));
-        report.append(String.format("- Search time (single query): %.1f ms\n", transfer.searchMs));
-        report.append(String.format("- Transfer overhead: %.0f%%\n", transfer.overheadPercent));
         report.append("\n");
 
         report.append("## Summary\n\n");
@@ -145,233 +164,16 @@ public class BenchmarkRunner {
         return report.toString();
     }
 
-    public String getSystemInfo() {
-        StringBuilder info = new StringBuilder();
-
-        // GPU Information
-        if (CudaDetector.isAvailable()) {
-            info.append("- **GPU:** ").append(CudaDetector.getGpuInfo()).append("\n");
-        } else {
-            info.append("- **GPU:** Not detected\n");
-        }
-
-        // CPU Information (attempt to get actual model)
-        String cpuModel = getCpuModel();
-        OperatingSystemMXBean os = ManagementFactory.getOperatingSystemMXBean();
-        int processors = os.getAvailableProcessors();
-        info.append("- **CPU:** ").append(cpuModel)
-                .append(" (").append(processors).append(" threads)\n");
-
-        // Memory Information
-        long maxMemory = Runtime.getRuntime().maxMemory() / (1024 * 1024);
-        long totalMemory = Runtime.getRuntime().totalMemory() / (1024 * 1024);
-        info.append("- **JVM Memory:** ").append(maxMemory).append(" MB max, ")
-                .append(totalMemory).append(" MB allocated\n");
-
-        // OS Information
-        info.append("- **OS:** ").append(System.getProperty("os.name"))
-                .append(" ").append(System.getProperty("os.version"))
-                .append(" (").append(System.getProperty("os.arch")).append(")\n");
-
-        // Java Information
-        info.append("- **Java:** ").append(System.getProperty("java.version"))
-                .append(" (").append(System.getProperty("java.vm.name")).append(")\n");
-
-        return info.toString();
-    }
-
-    private String getCpuModel() {
-        try {
-            String os = System.getProperty("os.name").toLowerCase();
-
-            if (os.contains("win")) {
-                // Windows: Query WMI for CPU name
-                String wmicPath = System.getenv("SystemRoot") + "\\System32\\wbem\\wmic.exe";
-                Process process = Runtime.getRuntime().exec(
-                        new String[] { wmicPath, "cpu", "get", "name" });
-                try (java.io.BufferedReader reader = new java.io.BufferedReader(
-                        new java.io.InputStreamReader(process.getInputStream()))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        line = line.trim();
-                        if (!line.isEmpty() && !line.equals("Name")) {
-                            return line;
-                        }
-                    }
-                }
-            } else if (os.contains("linux")) {
-                // Linux: Read from /proc/cpuinfo
-                Process process = Runtime.getRuntime().exec(
-                        new String[] { "/bin/cat", "/proc/cpuinfo" });
-                try (java.io.BufferedReader reader = new java.io.BufferedReader(
-                        new java.io.InputStreamReader(process.getInputStream()))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        if (line.startsWith("model name")) {
-                            return line.split(":")[1].trim();
-                        }
-                    }
-                }
-            } else if (os.contains("mac")) {
-                // macOS: Use sysctl
-                Process process = Runtime.getRuntime().exec(
-                        new String[] { "/usr/sbin/sysctl", "-n", "machdep.cpu.brand_string" });
-                try (java.io.BufferedReader reader = new java.io.BufferedReader(
-                        new java.io.InputStreamReader(process.getInputStream()))) {
-                    String line = reader.readLine();
-                    if (line != null) {
-                        return line.trim();
-                    }
-                }
-            }
-        } catch (Exception e) {
-            // Fallback silently
-        }
-
-        // Fallback to architecture if detection fails
-        return System.getProperty("os.arch") + " CPU";
-    }
-
-    private BenchmarkResult runSingleQueryBenchmark(int vectorCount) {
-        float[][] database = generateRandomVectors(vectorCount, DIMENSIONS);
-        float[] query = generateRandomVectors(1, DIMENSIONS)[0];
-
-        double cpuTime = benchmarkCpu(database, query);
-
-        double gpuTime = benchmarkGpu(database, query);
-
-        return new BenchmarkResult(vectorCount, 1, cpuTime, gpuTime);
-    }
-
-    private BenchmarkResult runPersistentMemoryBenchmark(int vectorCount, int queryCount) {
-        float[][] database = generateRandomVectors(vectorCount, DIMENSIONS);
-        float[][] queries = generateRandomVectors(queryCount, DIMENSIONS);
-
-        double cpuTime = benchmarkCpuPersistent(database, queries);
-        double gpuTime = benchmarkGpuPersistent(database, queries);
-
-        return new BenchmarkResult(vectorCount, queryCount, cpuTime, gpuTime);
-    }
-
-    private double benchmarkCpu(float[][] database, float[] query) {
-        for (int i = 0; i < WARMUP_ITERATIONS; i++) {
-            try (VectorIndex index = VectorIndexFactory.cpu(DIMENSIONS)) {
-                index.add(database);
-                index.search(query, 10);
-            }
-        }
-
-        long start = System.nanoTime();
-        for (int i = 0; i < MEASURED_ITERATIONS; i++) {
-            try (VectorIndex index = VectorIndexFactory.cpu(DIMENSIONS)) {
-                index.add(database);
-                index.search(query, 10);
-            }
-        }
-        return (System.nanoTime() - start) / 1_000_000.0 / MEASURED_ITERATIONS;
-    }
-
-    private double benchmarkGpu(float[][] database, float[] query) {
-        if (!CudaDetector.isAvailable())
-            return 0;
-
-        for (int i = 0; i < WARMUP_ITERATIONS; i++) {
-            try (VectorIndex index = VectorIndexFactory.gpu(DIMENSIONS, DistanceMetric.EUCLIDEAN)) {
-                index.add(database);
-                index.search(query, 10);
-            }
-        }
-
-        long start = System.nanoTime();
-        for (int i = 0; i < MEASURED_ITERATIONS; i++) {
-            try (VectorIndex index = VectorIndexFactory.gpu(DIMENSIONS, DistanceMetric.EUCLIDEAN)) {
-                index.add(database);
-                index.search(query, 10);
-            }
-        }
-        return (System.nanoTime() - start) / 1_000_000.0 / MEASURED_ITERATIONS;
-    }
-
-    private double benchmarkCpuPersistent(float[][] database, float[][] queries) {
-        for (int i = 0; i < WARMUP_ITERATIONS; i++) {
-            try (VectorIndex index = VectorIndexFactory.cpu(DIMENSIONS)) {
-                index.add(database);
-                for (float[] q : queries)
-                    index.search(q, 10);
-            }
-        }
-
-        long start = System.nanoTime();
-        for (int i = 0; i < MEASURED_ITERATIONS; i++) {
-            try (VectorIndex index = VectorIndexFactory.cpu(DIMENSIONS)) {
-                index.add(database);
-                for (float[] q : queries)
-                    index.search(q, 10);
-            }
-        }
-        return (System.nanoTime() - start) / 1_000_000.0 / MEASURED_ITERATIONS;
-    }
-
-    private double benchmarkGpuPersistent(float[][] database, float[][] queries) {
-        if (!CudaDetector.isAvailable())
-            return 0;
-
-        for (int i = 0; i < WARMUP_ITERATIONS; i++) {
-            try (VectorIndex index = VectorIndexFactory.gpu(DIMENSIONS, DistanceMetric.EUCLIDEAN)) {
-                index.add(database);
-                for (float[] q : queries)
-                    index.search(q, 10);
-            }
-        }
-
-        long start = System.nanoTime();
-        for (int i = 0; i < MEASURED_ITERATIONS; i++) {
-            try (VectorIndex index = VectorIndexFactory.gpu(DIMENSIONS, DistanceMetric.EUCLIDEAN)) {
-                index.add(database);
-                for (float[] q : queries)
-                    index.search(q, 10);
-            }
-        }
-        return (System.nanoTime() - start) / 1_000_000.0 / MEASURED_ITERATIONS;
-    }
-
-    private TransferAnalysis measureTransferOverhead(int vectorCount) {
-        if (!CudaDetector.isAvailable()) {
-            return new TransferAnalysis(0, 0, 0);
-        }
-
-        float[][] database = generateRandomVectors(vectorCount, DIMENSIONS);
-        float[] query = generateRandomVectors(1, DIMENSIONS)[0];
-
-        long uploadStart = System.nanoTime();
-        VectorIndex index = VectorIndexFactory.gpu(DIMENSIONS, DistanceMetric.EUCLIDEAN);
-        index.add(database);
-        double uploadMs = (System.nanoTime() - uploadStart) / 1_000_000.0;
-
-        for (int i = 0; i < 5; i++)
-            index.search(query, 10);
-
-        long searchStart = System.nanoTime();
-        for (int i = 0; i < 10; i++)
-            index.search(query, 10);
-        double searchMs = (System.nanoTime() - searchStart) / 1_000_000.0 / 10;
-
-        index.close();
-
-        double overheadPercent = (uploadMs / (uploadMs + searchMs)) * 100;
-        return new TransferAnalysis(uploadMs, searchMs, overheadPercent);
-    }
-
     private String formatResultRow(BenchmarkResult r) {
-        String winner = r.gpuTimeMs == 0 ? "N/A" : (r.getSpeedup() > 1 ? "GPU" : "CPU");
-        return String.format("| %,d | %.1f | %.1f | %.2fx | %s |\n",
-                r.vectorCount, r.cpuTimeMs, r.gpuTimeMs, r.getSpeedup(), winner);
+        return String.format("| %,d | %.2f | %.2f | %.1f | %.1f | %.2fx |\n",
+                r.getVectorCount(), r.getCpuTimeMs(), r.getGpuTimeMs(),
+                r.getCpuThroughput(), r.getGpuThroughput(), r.getSpeedup());
     }
 
     private String formatResultRowWithQueries(BenchmarkResult r) {
-        String winner = r.gpuTimeMs == 0 ? "N/A" : (r.getSpeedup() > 1 ? "GPU" : "CPU");
-        return String.format("| %,d | %d | %.1f | %.1f | %.2fx | %s |\n",
-                r.vectorCount, r.queryCount, r.cpuTimeMs, r.gpuTimeMs, r.getSpeedup(), winner);
+        return String.format("| %,d | %d | %.2f | %.2f | %.1f | %.1f | %.2fx |\n",
+                r.getVectorCount(), r.getQueryCount(), r.getCpuTimeMs(), r.getGpuTimeMs(),
+                r.getCpuThroughput(), r.getGpuThroughput(), r.getSpeedup());
     }
 
     private String generateSummary() {
@@ -385,36 +187,16 @@ public class BenchmarkRunner {
                 """;
     }
 
-    /**
-     * Export benchmark results to CSV format for regression tracking.
-     * Each run appends to your data, allowing trend analysis over time.
-     * 
-     * @param filename Path to the CSV file
-     */
     public void exportToCsv(String filename) throws java.io.IOException {
         try (PrintWriter writer = new PrintWriter(new FileWriter(filename))) {
-            // Header row
-            writer.println(
-                    "timestamp,gpu_name,vector_count,query_count,dimensions,cpu_time_ms,gpu_time_ms,speedup,winner");
-
-            String timestamp = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-            String gpuName = CudaDetector.isAvailable() ? CudaDetector.getGpuInfo().replace(",", ";") : "N/A";
+            writer.println(BenchmarkResult.getCsvHeader());
 
             for (BenchmarkResult r : allResults) {
-                String winner = r.gpuTimeMs == 0 ? "N/A" : (r.getSpeedup() > 1 ? "GPU" : "CPU");
-                writer.printf("%s,%s,%d,%d,%d,%.2f,%.2f,%.2f,%s%n",
-                        timestamp, gpuName, r.vectorCount, r.queryCount, DIMENSIONS,
-                        r.cpuTimeMs, r.gpuTimeMs, r.getSpeedup(), winner);
+                writer.println(r.toCsvLine());
             }
         }
     }
 
-    /**
-     * Export benchmark results to JSON format for programmatic analysis.
-     * Includes system info and all benchmark results.
-     * 
-     * @param filename Path to the JSON file
-     */
     public void exportToJson(String filename) throws java.io.IOException {
         try (PrintWriter writer = new PrintWriter(new FileWriter(filename))) {
             writer.println("{");
@@ -422,7 +204,7 @@ public class BenchmarkRunner {
             writer.printf("    \"timestamp\": \"%s\",%n",
                     LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
             writer.printf("    \"gpu_name\": \"%s\",%n",
-                    CudaDetector.isAvailable() ? CudaDetector.getGpuInfo() : "N/A");
+                    framework.getGpuName());
             writer.printf("    \"dimensions\": %d,%n", DIMENSIONS);
             writer.printf("    \"warmup_iterations\": %d,%n", WARMUP_ITERATIONS);
             writer.printf("    \"measured_iterations\": %d%n", MEASURED_ITERATIONS);
@@ -431,14 +213,14 @@ public class BenchmarkRunner {
             writer.println("  \"results\": [");
             for (int i = 0; i < allResults.size(); i++) {
                 BenchmarkResult r = allResults.get(i);
-                String winner = r.gpuTimeMs == 0 ? "N/A" : (r.getSpeedup() > 1 ? "GPU" : "CPU");
                 writer.println("    {");
-                writer.printf("      \"vector_count\": %d,%n", r.vectorCount);
-                writer.printf("      \"query_count\": %d,%n", r.queryCount);
-                writer.printf("      \"cpu_time_ms\": %.2f,%n", r.cpuTimeMs);
-                writer.printf("      \"gpu_time_ms\": %.2f,%n", r.gpuTimeMs);
-                writer.printf("      \"speedup\": %.2f,%n", r.getSpeedup());
-                writer.printf("      \"winner\": \"%s\"%n", winner);
+                writer.printf("      \"vector_count\": %d,%n", r.getVectorCount());
+                writer.printf("      \"query_count\": %d,%n", r.getQueryCount());
+                writer.printf("      \"cpu_time_ms\": %.2f,%n", r.getCpuTimeMs());
+                writer.printf("      \"gpu_time_ms\": %.2f,%n", r.getGpuTimeMs());
+                writer.printf("      \"cpu_qps\": %.2f,%n", r.getCpuThroughput());
+                writer.printf("      \"gpu_qps\": %.2f,%n", r.getGpuThroughput());
+                writer.printf("      \"speedup\": %.2f%n", r.getSpeedup());
                 writer.print("    }");
                 if (i < allResults.size() - 1)
                     writer.println(",");
@@ -447,49 +229,6 @@ public class BenchmarkRunner {
             }
             writer.println("  ]");
             writer.println("}");
-        }
-    }
-
-    private float[][] generateRandomVectors(int count, int dimensions) {
-        Random random = new Random(42);
-        float[][] vectors = new float[count][dimensions];
-        for (int i = 0; i < count; i++) {
-            for (int j = 0; j < dimensions; j++) {
-                vectors[i][j] = random.nextFloat() * 2 - 1;
-            }
-        }
-        return vectors;
-    }
-
-    private static class BenchmarkResult {
-        final int vectorCount;
-        final int queryCount;
-        final double cpuTimeMs;
-        final double gpuTimeMs;
-
-        BenchmarkResult(int vectorCount, int queryCount, double cpuTimeMs, double gpuTimeMs) {
-            this.vectorCount = vectorCount;
-            this.queryCount = queryCount;
-            this.cpuTimeMs = cpuTimeMs;
-            this.gpuTimeMs = gpuTimeMs;
-        }
-
-        double getSpeedup() {
-            if (gpuTimeMs == 0)
-                return 0;
-            return cpuTimeMs / gpuTimeMs;
-        }
-    }
-
-    private static class TransferAnalysis {
-        final double uploadMs;
-        final double searchMs;
-        final double overheadPercent;
-
-        TransferAnalysis(double uploadMs, double searchMs, double overheadPercent) {
-            this.uploadMs = uploadMs;
-            this.searchMs = searchMs;
-            this.overheadPercent = overheadPercent;
         }
     }
 }

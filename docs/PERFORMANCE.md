@@ -246,3 +246,58 @@ If GPU tests are skipped:
 - [OPTIMIZATION_GUIDE.md](../OPTIMIZATION_GUIDE.md) - Technical optimization details
 - [README.md](../README.md) - Getting started guide
 - [NVIDIA CUDA Best Practices](https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/)
+
+---
+
+## Benchmark Archive
+
+### [2026-01-03] Full Suite Benchmark
+
+**System:**
+- **GPU:** NVIDIA GeForce GTX 1080 with MaxQ (8GB VRAM)
+- **CPU:** Intel Core i7-7820HK
+- **Java:** 25 (OpenJDK 64-Bit)
+
+**Results (Throughput/QPS):**
+
+| Vectors | Queries | CPU (QPS) | GPU (QPS) | Speedup | Note |
+|:-------:|:-------:|:---------:|:---------:|:-------:|:-----|
+| 1K | 1 | 545.1 | 9.7 | 0.02x | CPU dominates single tiny queries |
+| 10K | 1 | 197.5 | 8.9 | 0.05x | Cold start penalty high on GPU |
+| 50K | 1 | 33.8 | 5.9 | 0.17x | Transfer overhead visible |
+| 10K | 100 | 217.5 | 1575.0 | **7.24x** | GPU efficiently batches 100 queries |
+| 50K | 100 | 47.8 | 153.6 | **3.22x** | **GPU sustains 3x higher throughput** |
+
+### Advanced Analysis (Deep Dive)
+
+**1. Persistent Memory vs Cold Start**
+*Test Scenario: 50,000 vectors x 384 dimensions, 100 queries*
+
+| Mode | CPU Latency | GPU Latency | Speedup | Conclusion |
+|------|-------------|-------------|---------|------------|
+| **Cold Start** | 286 ms | 533 ms | 0.54x | CPU wins (Transfer overhead) |
+| **Persistent** | 30.38 ms | **5.94 ms** | **5.11x** | **GPU Wins (Raw Compute)** |
+
+> **Key Takeaway:** You MUST use `VectorIndexFactory.gpu()` or `hybrid()` with persistent vectors to see performance gains. Single-shot `add()+search()` patterns are anti-patterns for GPU.
+
+**2. Memory Transfer Overhead**
+*Measurement: 50k vectors upload time vs compute time*
+- **Transfer Time:** ~70ms
+- **Compute Time:** ~6ms
+- **Ratio:** 92% of time is spent moving data!
+- **Fix:** We are implementing **Pinned Memory** and **Async Streams** in v1.1.0 to hide this latency.
+
+**3. Dimensionality Scaling**
+*Impact of vector size on GPU efficiency (Fixed 50MB dataset)*
+
+| Dims | Vectors | GPU Speedup | Insight |
+|------|---------|-------------|---------|
+| 128 | 50K | 0.61x | Too small for GPU to shine |
+| 384 | 50K | 0.65x | Standard embeddings (e.g. MiniLM) |
+| 1536 | 10K | 0.25x | OpenAI embeddings (compute bound? Needs investigation) |
+
+**Key Findings:**
+1. **Throughput Wins:** For batch workloads, GPU consistently delivers 3-7x higher Queries Per Second (QPS).
+2. **Latency vs Throughput:** CPU has lower latency for single items (ms), but GPU has massive bandwidth (QPS).
+3. **Scaling:** At 50K vectors, GPU maintains >150 QPS while CPU drops to <50 QPS.
+4. **Conclusion:** Use `HybridVectorIndex` to automatically switch between these modes!

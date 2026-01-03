@@ -1,0 +1,92 @@
+{
+  "benchmark_metadata": {
+    "timestamp": "2026-01-03T21:35:48.2984682",
+    "gpu_name": "NVIDIA GeForce GTX 1080 with MaxQ Design (Compute 6.1, 8191 MB VRAM, 1468 MHz)",
+    "dimensions": 384,
+    "warmup_iterations": 3,
+    "measured_iterations": 5
+  },
+  "results": [
+    {
+      "vector_count": 1000,
+      "query_count": 1,
+      "cpu_time_ms": 1.57,
+      "gpu_time_ms": 79.24,
+      "cpu_qps": 637.10,
+      "gpu_qps": 12.62,
+      "speedup": 0.02
+    },
+    {
+      "vector_count": 10000,
+      "query_count": 1,
+      "cpu_time_ms": 3.48,
+      "gpu_time_ms": 95.77,
+      "cpu_qps": 287.27,
+      "gpu_qps": 10.44,
+      "speedup": 0.04
+    },
+    {
+      "vector_count": 50000,
+      "query_count": 1,
+      "cpu_time_ms": 25.09,
+      "gpu_time_ms": 152.83,
+      "cpu_qps": 39.86,
+      "gpu_qps": 6.54,
+      "speedup": 0.16
+    },
+    {
+      "vector_count": 1000,
+      "query_count": 10,
+      "cpu_time_ms": 2.85,
+      "gpu_time_ms": 2.27,
+      "cpu_qps": 3504.03,
+      "gpu_qps": 4400.48,
+      "speedup": 1.26
+    },
+    {
+      "vector_count": 1000,
+      "query_count": 100,
+      "cpu_time_ms": 31.21,
+      "gpu_time_ms": 17.83,
+      "cpu_qps": 3204.35,
+      "gpu_qps": 5609.86,
+      "speedup": 1.75
+    },
+    {
+      "vector_count": 10000,
+      "query_count": 10,
+      "cpu_time_ms": 36.37,
+      "gpu_time_ms": 7.85,
+      "cpu_qps": 274.93,
+      "gpu_qps": 1273.97,
+      "speedup": 4.63
+    },
+    {
+      "vector_count": 10000,
+      "query_count": 100,
+      "cpu_time_ms": 370.90,
+      "gpu_time_ms": 62.03,
+      "cpu_qps": 269.61,
+      "gpu_qps": 1612.12,
+      "speedup": 5.98
+    },
+    {
+      "vector_count": 50000,
+      "query_count": 10,
+      "cpu_time_ms": 185.19,
+      "gpu_time_ms": 65.88,
+      "cpu_qps": 54.00,
+      "gpu_qps": 151.79,
+      "speedup": 2.81
+    },
+    {
+      "vector_count": 50000,
+      "query_count": 100,
+      "cpu_time_ms": 1882.64,
+      "gpu_time_ms": 611.52,
+      "cpu_qps": 53.12,
+      "gpu_qps": 163.53,
+      "speedup": 3.08
+    }
+  ]
+}

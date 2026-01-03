@@ -176,14 +176,15 @@ public final class BenchmarkResult {
 
     // Single-line CSV format
     public String toCsvLine() {
-        return String.format("%s,%s,%d,%d,%d,%d,%s,%.2f,%.2f,%.2f,%.2f,%.2f,%d",
+        return String.format("%s,%s,%d,%d,%d,%d,%s,%.2f,%.2f,%.2f,%.2f,%.2f,%d,%.1f,%.1f",
                 timestamp, gpuName, vectorCount, dimensions, queryCount, k, distanceMetric,
-                cpuTimeMs, gpuTimeMs, gpuTransferTimeMs, gpuComputeTimeMs, getSpeedup(), gpuMemoryUsedBytes);
+                cpuTimeMs, gpuTimeMs, gpuTransferTimeMs, gpuComputeTimeMs, getSpeedup(), gpuMemoryUsedBytes,
+                getCpuThroughput(), getGpuThroughput());
     }
 
     // CSV header line
     public static String getCsvHeader() {
-        return "timestamp,gpu_name,vector_count,dimensions,query_count,k,metric,cpu_ms,gpu_ms,transfer_ms,compute_ms,speedup,gpu_memory_bytes";
+        return "timestamp,gpu_name,vector_count,dimensions,query_count,k,metric,cpu_ms,gpu_ms,transfer_ms,compute_ms,speedup,gpu_memory_bytes,cpu_qps,gpu_qps";
     }
 
     @Override

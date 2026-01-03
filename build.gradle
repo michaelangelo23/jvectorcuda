@@ -46,9 +46,9 @@ ext {
 
 dependencies {
     // Core JCuda Libraries (transitive=false to bypass broken POMs)
-    implementation("org.jcuda:jcuda:${jcudaTopVersion}") { transitive = false }
-    implementation("org.jcuda:jcublas:${jcudaTopVersion}") { transitive = false }
-    implementation("org.jcuda:jcurand:${jcudaTopVersion}") { transitive = false }
+    implementation("org.jcuda:jcuda:${jcudaTopVersion}@jar") { transitive = false }
+    implementation("org.jcuda:jcublas:${jcudaTopVersion}@jar") { transitive = false }
+    implementation("org.jcuda:jcurand:${jcudaTopVersion}@jar") { transitive = false }
 
     // Platform-Specific Native Libraries (Runtime Only)
     runtimeOnly "org.jcuda:jcuda-natives:${jcudaTopVersion}:${jcudaClassifier}"
